@@ -16,9 +16,9 @@ from pyspark.sql.types import *
 
 # def test():
 #   return (
-#      spark.readStream.format('cloudFiles')\
-#      .option('cloudFiles.format', 'csv')\
-#      .load(f's3://food-delivery-pipeline-102947735140-ap-southeast-1-an/data/raw/dims/customers.csv')\
+#      spark.readStream.format("cloudFiles")\
+#      .option("cloudFiles.format", "csv")\
+#      .load(f"s3://food-delivery-pipeline-102947735140-ap-southeast-1-an/data/raw/dims/customers.csv")\
 #      .limit(10)\
 #      .display()
 #  )
@@ -33,12 +33,10 @@ from pyspark.sql.types import *
 
 dims_path = "s3://food-delivery-pipeline-102947735140-ap-southeast-1-an/data/raw/dims"
 
-
-
 @dp.materialized_view()
 def dim_customers():
   df = spark.read\
-    .format('csv')\
+    .format("csv")\
     .option("header", "true")\
     .option("inferSchema", "true")\
     .load(f"{dims_path}/customers.csv")
@@ -48,7 +46,7 @@ def dim_customers():
 @dp.materialized_view()
 def dim_drivers():
   df = spark.read\
-    .format('csv')\
+    .format("csv")\
     .option("header", "true")\
     .option("inferSchema", "true")\
     .load(f"{dims_path}/drivers.csv")
@@ -58,7 +56,7 @@ def dim_drivers():
 @dp.materialized_view()
 def dim_menu_items():
   df = spark.read\
-    .format('csv')\
+    .format("csv")\
     .option("header", "true")\
     .option("inferSchema", "true")\
     .load(f"{dims_path}/menu_items.csv")
@@ -68,9 +66,22 @@ def dim_menu_items():
 @dp.materialized_view()
 def dim_vendors():
   df = spark.read\
-    .format('csv')\
+    .format("csv")\
     .option("header", "true")\
     .option("inferSchema", "true")\
     .load(f"{dims_path}/vendors.csv")
+  
+  return df
+
+
+events_path = "s3://food-delivery-pipeline-102947735140-ap-southeast-1-an/data/raw/order_events"
+
+@dp.table()
+def order_events():
+  df = spark.readStream\
+    .format("cloudFiles")\
+    .option("cloudFiles.format", "json")\
+    .option("cloudFiles.inferColumnTypes", "true")\
+    .load(events_path)
   
   return df
