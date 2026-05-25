@@ -1,0 +1,11 @@
+customer_id,name,email,phone,city,lat,lon,registration_date
+cust_b36ae2e43a91,佐藤 淳,tomoyatakahashi@example.org,070-9600-1338,Kyoto,34.972733,135.792255,2025-03-11
+cust_5506244b9030,山下 裕樹,lito@example.com,070-2654-2351,Osaka,34.666021,135.525947,2023-08-31
+cust_7afc6be32c09,小林 太郎,osamu78@example.org,18-4959-3103,Kyoto,35.035667,135.772637,2025-09-15
+cust_fd8243eabfcf,石井 亮介,kobayashirei@example.net,090-2553-4192,Sapporo,43.056392,141.29988,2024-12-27
+cust_371bfda50ee4,高橋 拓真,hanako83@example.net,090-0305-6413,Osaka,34.666966,135.512502,2026-02-15
+cust_7b12bc3aa19c,田中 幹,psaito@example.com,080-4238-8496,Sapporo,43.034084,141.361888,2026-01-30
+cust_5b2f8c68cbab,小林 くみ子,dsuzuki@example.org,080-2691-6697,Sapporo,43.056152,141.341821,2024-12-21
+cust_14214d5c2811,池田 和也,yoko51@example.com,27-0482-8148,Nagoya,35.212443,136.85725,2025-03-19
+cust_fffa1ee8a293,小林 健一,saitoasuka@example.org,070-5430-3911,Yokohama,35.409666,139.630261,2025-08-01
+cust_34555281ca3c,松田 英樹,junabe@example.net,080-4896-3834,Nagoya,35.147048,136.952321,2024-08-01

@@ -1,0 +1,11 @@
+vendor_id,name,cuisine_type,city,lat,lon,avg_prep_minutes,rating
+vend_15e937930c51,中川 Pizza,Pizza,Kyoto,34.995065,135.751069,22,4.4
+vend_68a5c5b26000,斉藤 Indian,Indian,Nagoya,35.1567,136.941757,23,4.7
+vend_b74d24772978,斉藤 Thai,Thai,Nagoya,35.13965,136.922961,19,3.6
+vend_cc47f2b61787,佐藤 Indian,Indian,Kyoto,35.031448,135.757296,23,4.4
+vend_7c016a9a462f,高橋 Thai,Thai,Tokyo,35.657158,139.637968,19,4.6
+vend_03419f574b9d,西村 Cafe,Cafe,Kyoto,35.031883,135.812811,14,4.8
+vend_a014d5f13721,小川 Thai,Thai,Tokyo,35.690802,139.642641,19,3.0
+vend_d08b843f0708,田中 Burger,Burger,Nagoya,35.149526,136.878019,16,3.4
+vend_f18b02f5327f,小林 Ramen,Ramen,Osaka,34.659195,135.481879,22,4.0
+vend_9670c3a9c942,小林 Japanese,Japanese,Sapporo,43.097712,141.385268,20,4.3

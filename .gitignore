@@ -1,9 +1,18 @@
 # Claude
 .claude/
 
-# Generated data
+# Generated data (big — runtime-only)
 data/raw/
 data/processed/
+
+# Local script state (per-environment)
+data/.last_tick
+
+# But DO keep a small sample committed so the repo shows what data looks like
+!data/samples/
+
+# Script logs
+logs/
 
 # Python
 __pycache__/

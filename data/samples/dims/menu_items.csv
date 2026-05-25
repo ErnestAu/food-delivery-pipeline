@@ -1,0 +1,11 @@
+menu_item_id,vendor_id,name,category,price,is_available
+item_dc2d926e9fd3,vend_15e937930c51,Pepperoni Pizza (M),Main,1377,True
+item_ca5a86234a71,vend_15e937930c51,Margherita (M),Main,1217,True
+item_ba1d8596b102,vend_15e937930c51,BBQ Chicken (M),Main,1553,True
+item_fd6b32ea5dee,vend_15e937930c51,Garlic Knots,Side,452,True
+item_3d13daf77e7c,vend_15e937930c51,Soft Drink,Drink,293,True
+item_68d2f7f1406d,vend_15e937930c51,Pepperoni Pizza (M),Main,1491,True
+item_4d1149eb4aaf,vend_15e937930c51,Margherita (M),Main,1248,True
+item_8bacb4f41b54,vend_15e937930c51,BBQ Chicken (M),Main,1590,True
+item_49499ef53535,vend_15e937930c51,Garlic Knots,Side,380,True
+item_6914a0125a3e,vend_15e937930c51,Soft Drink,Drink,174,True

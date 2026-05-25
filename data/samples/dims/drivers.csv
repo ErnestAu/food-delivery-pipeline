@@ -1,0 +1,11 @@
+driver_id,name,vehicle_type,city,rating
+driv_8fd6b54e264c,吉田 真綾,motorbike,Nagoya,4.5
+driv_b19fbde1edf0,福田 太郎,bicycle,Tokyo,4.5
+driv_1738ca5c9729,井上 くみ子,motorbike,Nagoya,4.3
+driv_44f83207ef6a,山本 直人,car,Kyoto,3.7
+driv_4944a2a0b34f,伊藤 あすか,bicycle,Osaka,4.8
+driv_697d68d23838,山口 花子,car,Yokohama,4.2
+driv_7de57b79cd90,山田 舞,bicycle,Tokyo,3.9
+driv_e984e1d68389,小林 幹,car,Nagoya,4.0
+driv_f3c3490f8429,渡辺 明美,car,Tokyo,4.4
+driv_a5397d2c4ed5,吉田 淳,car,Fukuoka,4.9
