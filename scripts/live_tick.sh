@@ -20,7 +20,8 @@ LOG_FILE="$LOG_DIR/live_tick_${TIMESTAMP}.log"
 cd "$PROJECT_DIR"
 
 # cron has a minimal PATH — restore it so we can find python and aws
-export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+# Anaconda python is at /Users/ernestau/anaconda3/bin, aws CLI is in /usr/local/bin
+export PATH="/Users/ernestau/anaconda3/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
 {
     echo "==============================="
