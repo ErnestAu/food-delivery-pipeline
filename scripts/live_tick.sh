@@ -19,11 +19,13 @@ LOG_FILE="$LOG_DIR/live_tick_${TIMESTAMP}.log"
 
 cd "$PROJECT_DIR"
 
-# cron has a minimal PATH — restore it so we can find python and aws
-# Anaconda python is at /Users/ernestau/anaconda3/bin, aws CLI is in /usr/local/bin
-export PATH="/Users/ernestau/anaconda3/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+# cron has a minimal PATH — restore it so we can find aws CLI
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
-# Ensure Python can import the local simulator package (CWD-as-path is unreliable under cron+anaconda)
+# Use the project's venv Python directly (no shell activation needed)
+PYTHON="$PROJECT_DIR/.venv/bin/python"
+
+# Ensure Python can import the local simulator package
 export PYTHONPATH="$PROJECT_DIR:${PYTHONPATH:-}"
 
 {
@@ -64,7 +66,7 @@ export PYTHONPATH="$PROJECT_DIR:${PYTHONPATH:-}"
             BACKFILL_HOUR_INT=$((10#$BACKFILL_HOUR))
 
             echo "    > Backfill $BACKFILL_DATE hour=$BACKFILL_HOUR"
-            python -m simulator.main \
+            "$PYTHON" -m simulator.main \
                 --date "$BACKFILL_DATE" \
                 --hour "$BACKFILL_HOUR_INT" \
                 --daily-target "$DAILY_TARGET"
@@ -76,7 +78,7 @@ export PYTHONPATH="$PROJECT_DIR:${PYTHONPATH:-}"
     # --- Current hour (live) ---
     echo ""
     echo "[1/2] Generating events for current hour..."
-    python -m simulator.main --live --daily-target "$DAILY_TARGET"
+    "$PYTHON" -m simulator.main --live --daily-target "$DAILY_TARGET"
 
     # --- Sync everything to S3 ---
     echo ""
