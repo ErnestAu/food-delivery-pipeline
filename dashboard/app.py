@@ -272,7 +272,7 @@ with trend_col1:
         title="Orders by status",
     )
     fig.update_layout(height=350, margin=dict(l=0, r=0, t=40, b=0), legend_title=None)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 with trend_col2:
     fig = px.line(
@@ -284,7 +284,7 @@ with trend_col2:
     )
     fig.update_traces(line_color=COLOR_PRIMARY, line_width=2)
     fig.update_layout(height=350, margin=dict(l=0, r=0, t=40, b=0))
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 trend_col3, trend_col4 = st.columns(2)
 
@@ -302,7 +302,7 @@ with trend_col3:
         margin=dict(l=0, r=0, t=40, b=0),
         yaxis_tickformat=".1%",
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 with trend_col4:
     stages = load_lifecycle_stages(start_date, end_date)
@@ -332,7 +332,7 @@ with trend_col4:
             color_discrete_sequence=["#bae6fd", "#60a5fa", "#6366f1", "#7c3aed"],
         )
         fig.update_layout(height=300, margin=dict(l=0, r=0, t=40, b=0))
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     else:
         st.info("Not enough delivered orders for lifecycle breakdown.")
 
@@ -351,7 +351,7 @@ fig = px.bar(
 )
 fig.update_traces(marker_color=COLOR_PRIMARY)
 fig.update_layout(height=350, margin=dict(l=0, r=0, t=40, b=0))
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, width="stretch")
 
 # ---------- Hourly heatmap ----------
 st.subheader("🗓️ Order volume by weekday × hour")
@@ -384,7 +384,7 @@ if not heatmap.empty:
     )
     fig.update_layout(height=300, margin=dict(l=0, r=0, t=10, b=0))
     fig.update_xaxes(dtick=2)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 else:
     st.info("Heatmap needs more data — widen the date range.")
 
@@ -402,7 +402,7 @@ if not vendors_df.empty:
         lambda x: f"{x * 100:.1f}%" if pd.notna(x) else "—"
     )
     display_df.columns = ["Vendor", "Cuisine", "City", "Orders", "GMV", "Avg order", "Cancel rate"]
-    st.dataframe(display_df, use_container_width=True, hide_index=True)
+    st.dataframe(display_df, width="stretch", hide_index=True)
 else:
     st.info("No vendor activity in this range.")
 
@@ -424,7 +424,7 @@ with cancel_col1:
             hole=0.5,
         )
         fig.update_layout(height=350, margin=dict(l=0, r=0, t=40, b=0))
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     else:
         st.info("No cancellations in this range.")
 
@@ -440,8 +440,8 @@ with cancel_col2:
             title="Top cancellation reasons",
         )
         fig.update_layout(height=350, margin=dict(l=0, r=0, t=40, b=0))
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
 # ---------- Raw data ----------
 with st.expander("🔍 Raw daily metrics (debug)"):
-    st.dataframe(daily, use_container_width=True, hide_index=True)
+    st.dataframe(daily, width="stretch", hide_index=True)
