@@ -19,14 +19,17 @@ LOG_FILE="$LOG_DIR/live_tick_${TIMESTAMP}.log"
 
 cd "$PROJECT_DIR"
 
-# cron has a minimal PATH — restore it so we can find aws CLI
+# cron has a minimal env — restore enough for python + aws to run reliably
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+export TMPDIR="${TMPDIR:-/tmp}"                                # Python uses this for misc temp resolution
+export LC_ALL="${LC_ALL:-en_US.UTF-8}"                         # avoid locale-related path edge cases
+export LANG="${LANG:-en_US.UTF-8}"
 
 # Use the project's venv Python directly (no shell activation needed)
 PYTHON="$PROJECT_DIR/.venv/bin/python"
 
-# Ensure Python can import the local simulator package
-export PYTHONPATH="$PROJECT_DIR:${PYTHONPATH:-}"
+# Ensure Python can import the local simulator package (no trailing colon)
+export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$PROJECT_DIR"
 
 {
     echo "==============================="
