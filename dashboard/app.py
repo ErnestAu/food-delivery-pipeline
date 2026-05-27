@@ -6,11 +6,10 @@ Run with:
 from __future__ import annotations
 
 import os
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 import streamlit as st
 from databricks import sql
 from dotenv import load_dotenv
@@ -34,16 +33,6 @@ COLOR_DELIVERED = "#22c55e"
 COLOR_CANCELLED = "#ef4444"
 COLOR_IN_PROGRESS = "#f59e0b"
 COLOR_PRIMARY = "#3b82f6"
-COLOR_MUTED = "#94a3b8"
-
-STATUS_COLORS = {
-    "delivered": COLOR_DELIVERED,
-    "cancelled": COLOR_CANCELLED,
-    "in_transit": COLOR_IN_PROGRESS,
-    "prepared": COLOR_IN_PROGRESS,
-    "confirmed": COLOR_IN_PROGRESS,
-    "placed": COLOR_IN_PROGRESS,
-}
 
 
 # ---------- Data access ----------
@@ -68,19 +57,6 @@ def load_daily_metrics(start: date, end: date) -> pd.DataFrame:
         WHERE order_date IS NOT NULL
           AND order_date BETWEEN '{start}' AND '{end}'
         ORDER BY order_date
-        """
-    )
-
-
-@st.cache_data(ttl=300)
-def load_status_breakdown(start: date, end: date) -> pd.DataFrame:
-    return run_query(
-        f"""
-        SELECT final_status, COUNT(*) AS cnt
-        FROM food_delivery.gold.fct_orders
-        WHERE placed_at IS NOT NULL
-          AND DATE(placed_at) BETWEEN '{start}' AND '{end}'
-        GROUP BY final_status
         """
     )
 
@@ -200,7 +176,7 @@ def load_date_range() -> tuple[date, date]:
 
 
 # ---------- Sidebar ----------
-st.sidebar.title("🎛️ Filters")
+st.sidebar.title("Filters")
 
 min_date, max_date = load_date_range()
 
@@ -245,8 +221,7 @@ if st.sidebar.button("🔄 Refresh data"):
 # ---------- Page header ----------
 st.title("🍱 Food Delivery Ops")
 st.caption(
-    f"`food_delivery.gold` · range: **{start_date}** → **{end_date}** "
-    f"· cache 5min · use sidebar to filter"
+    f"`food_delivery.gold` · range: **{start_date}** → **{end_date}** · cache 5min"
 )
 
 # ---------- Load main data ----------
@@ -354,7 +329,7 @@ with trend_col4:
             category_orders={"stage": category_order},
             labels={"order_date": "Date", "minutes": "Minutes", "stage": ""},
             title="Where time is spent in the order lifecycle",
-            color_discrete_sequence=["#fbbf24", "#f97316", "#a855f7", "#22c55e"],
+            color_discrete_sequence=["#bae6fd", "#60a5fa", "#6366f1", "#7c3aed"],
         )
         fig.update_layout(height=300, margin=dict(l=0, r=0, t=40, b=0))
         st.plotly_chart(fig, use_container_width=True)
@@ -363,62 +338,42 @@ with trend_col4:
 
 st.divider()
 
-# ---------- Status funnel + Cuisine mix ----------
-st.subheader("🎯 Operational breakdown")
-
-ops_col1, ops_col2 = st.columns(2)
-
-with ops_col1:
-    status_df = load_status_breakdown(start_date, end_date)
-    status_df["color"] = status_df["final_status"].map(STATUS_COLORS).fillna(COLOR_MUTED)
-    status_df = status_df.sort_values("cnt", ascending=True)
-    fig = go.Figure(
-        go.Bar(
-            x=status_df["cnt"],
-            y=status_df["final_status"],
-            orientation="h",
-            marker_color=status_df["color"],
-            text=status_df["cnt"].map(lambda x: f"{x:,}"),
-            textposition="outside",
-        )
-    )
-    fig.update_layout(
-        title="Order status distribution",
-        height=300,
-        margin=dict(l=0, r=20, t=40, b=0),
-        xaxis_title="Orders",
-        yaxis_title=None,
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-with ops_col2:
-    cuisine_df = load_cuisine_mix(start_date, end_date)
-    cuisine_df = cuisine_df.dropna(subset=["gmv"]).sort_values("gmv", ascending=True)
-    fig = px.bar(
-        cuisine_df,
-        x="gmv",
-        y="cuisine_type",
-        orientation="h",
-        labels={"gmv": "GMV (¥)", "cuisine_type": ""},
-        title="GMV by cuisine type",
-    )
-    fig.update_traces(marker_color=COLOR_PRIMARY)
-    fig.update_layout(height=300, margin=dict(l=0, r=0, t=40, b=0))
-    st.plotly_chart(fig, use_container_width=True)
+# ---------- Cuisine mix ----------
+cuisine_df = load_cuisine_mix(start_date, end_date)
+cuisine_df = cuisine_df.dropna(subset=["gmv"]).sort_values("gmv", ascending=True)
+fig = px.bar(
+    cuisine_df,
+    x="gmv",
+    y="cuisine_type",
+    orientation="h",
+    labels={"gmv": "GMV (¥)", "cuisine_type": ""},
+    title="GMV by cuisine type",
+)
+fig.update_traces(marker_color=COLOR_PRIMARY)
+fig.update_layout(height=350, margin=dict(l=0, r=0, t=40, b=0))
+st.plotly_chart(fig, use_container_width=True)
 
 # ---------- Hourly heatmap ----------
-st.subheader("🗓️ Order volume heatmap")
+st.subheader("🗓️ Order volume by weekday × hour")
+st.caption(
+    "Average orders per slot across the selected range. "
+    "Rows ordered chronologically with **today's weekday at the bottom**."
+)
 
 heatmap = load_hour_heatmap(start_date, end_date)
 
 if not heatmap.empty:
-    # Reshape: rows = day of week, cols = hour of day
+    # Spark DAYOFWEEK: 1=Sun, 7=Sat. Map to day names.
     dow_names = {1: "Sun", 2: "Mon", 3: "Tue", 4: "Wed", 5: "Thu", 6: "Fri", 7: "Sat"}
     heatmap["day_name"] = heatmap["dow"].map(dow_names)
-
     pivot = heatmap.pivot(index="day_name", columns="hour_of_day", values="orders").fillna(0)
-    # Reorder rows Mon → Sun for natural reading
-    day_order = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+    # Dynamic day order: 6 days ago → today (today at bottom)
+    iso_to_name = {1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri", 6: "Sat", 7: "Sun"}
+    today_iso = datetime.now().isoweekday()
+    day_order = [
+        iso_to_name[((today_iso - offset - 1) % 7) + 1] for offset in range(6, -1, -1)
+    ]
     pivot = pivot.reindex([d for d in day_order if d in pivot.index])
 
     fig = px.imshow(
