@@ -23,6 +23,9 @@ cd "$PROJECT_DIR"
 # Anaconda python is at /Users/ernestau/anaconda3/bin, aws CLI is in /usr/local/bin
 export PATH="/Users/ernestau/anaconda3/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
+# Ensure Python can import the local simulator package (CWD-as-path is unreliable under cron+anaconda)
+export PYTHONPATH="$PROJECT_DIR:${PYTHONPATH:-}"
+
 {
     echo "==============================="
     echo "Live tick: $(date -u)"
