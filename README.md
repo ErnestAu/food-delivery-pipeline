@@ -5,7 +5,8 @@
 > to a live ops dashboard. Built as a portfolio piece drawing on my prior experience as a
 > Data Analytics Engineer at foodpanda.
 
-🔗 **Live dashboard:** [ernestau-food-delivery-ops.streamlit.app](https://ernestau-food-delivery-ops.streamlit.app) *(replace with actual URL)*
+🔗 **Live dashboard:** [ernestau-food-delivery-ops.streamlit.app](https://ernestau-food-delivery-ops.streamlit.app) 
+
 📊 **Architecture diagram:** [`system-design.svg`](system-design.svg)
 
 ---
@@ -163,10 +164,4 @@ Bookmarked enhancements, in roughly priority order:
 - **Databricks Asset Bundles** — pipeline config + secrets + permissions as code. Promote dev → prod by switching catalogs.
 - **Kafka in place of file ingestion** — replace file-based Auto Loader with a Kafka source for true real-time. Was the production target in the original design doc; deferred for v0.
 
----
 
-## About
-
-Built by **Ernest Au** — former Data Analytics Engineer at foodpanda, currently at EY (Databricks, Spark, dbt, AWS, BigQuery). Targeting mid-level data engineering roles at Mercari and similar Tokyo-based product companies. This project applies the foodpanda domain to a Mercari-style marketplace pattern: transactions, multi-actor events, lifecycle states.
-
-[LinkedIn](#) · [GitHub](https://github.com/ErnestAu)
