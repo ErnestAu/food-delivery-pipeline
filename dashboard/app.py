@@ -15,11 +15,20 @@ from databricks import sql
 from dotenv import load_dotenv
 
 # ---------- Config ----------
-load_dotenv()
+load_dotenv()  # local dev only — no-op on Streamlit Cloud
 
-DATABRICKS_HOST = os.environ["DATABRICKS_SERVER_HOSTNAME"]
-DATABRICKS_HTTP_PATH = os.environ["DATABRICKS_HTTP_PATH"]
-DATABRICKS_TOKEN = os.environ["DATABRICKS_TOKEN"]
+
+def get_secret(key: str) -> str:
+    """Read a secret from Streamlit Cloud secrets, falling back to env vars locally."""
+    try:
+        return st.secrets[key]
+    except (KeyError, FileNotFoundError, AttributeError):
+        return os.environ[key]
+
+
+DATABRICKS_HOST = get_secret("DATABRICKS_SERVER_HOSTNAME")
+DATABRICKS_HTTP_PATH = get_secret("DATABRICKS_HTTP_PATH")
+DATABRICKS_TOKEN = get_secret("DATABRICKS_TOKEN")
 
 st.set_page_config(
     page_title="Food Delivery Ops",
