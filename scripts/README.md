@@ -36,6 +36,28 @@ Hourly tick script — generates events for the current hour, **auto-backfills a
    tail -50 logs/live_tick_*.log
    ```
 
+### Venv location
+
+The venv lives at `~/venvs/food-delivery/`, **not** in the project folder.
+
+**Why outside the repo:** macOS TCC (Transparency, Consent, Control) protects
+`~/Documents/` — even with cron in Full Disk Access, child binaries spawned by
+cron can't read files under Documents. The venv's `python` binary needs to read
+its own `pyvenv.cfg` at startup, which fails with `PermissionError` if the venv
+is inside `~/Documents/`.
+
+To recreate the venv if needed:
+```bash
+mkdir -p ~/venvs
+python -m venv ~/venvs/food-delivery
+~/venvs/food-delivery/bin/pip install -r requirements.txt
+```
+
+For interactive dev (running Streamlit etc.), activate the same venv:
+```bash
+source ~/venvs/food-delivery/bin/activate
+```
+
 ### Troubleshooting
 
 **cron isn't running the script:**
@@ -49,3 +71,7 @@ Hourly tick script — generates events for the current hour, **auto-backfills a
 **Simulator runs but no files written:**
 - Check `cfg.raw_base_path` in `simulator/config.py` — should be `data/raw` relative to CWD.
 - Script `cd`s into project root first, so this should work.
+
+**Python errors like `failed to make path absolute` or `PermissionError on .venv/pyvenv.cfg`:**
+- The venv is probably inside `~/Documents/`. macOS TCC blocks cron-spawned python from reading it.
+- Fix: recreate the venv at `~/venvs/food-delivery/` (see "Venv location" above).

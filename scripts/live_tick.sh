@@ -25,8 +25,10 @@ export TMPDIR="${TMPDIR:-/tmp}"                                # Python uses thi
 export LC_ALL="${LC_ALL:-en_US.UTF-8}"                         # avoid locale-related path edge cases
 export LANG="${LANG:-en_US.UTF-8}"
 
-# Use the project's venv Python directly (no shell activation needed)
-PYTHON="$PROJECT_DIR/.venv/bin/python"
+# Use the project's venv Python directly (no shell activation needed).
+# IMPORTANT: venv lives in ~/venvs/ (outside ~/Documents) because macOS TCC
+# blocks cron-spawned binaries from reading files under ~/Documents.
+PYTHON="$HOME/venvs/food-delivery/bin/python"
 
 # Ensure Python can import the local simulator package (no trailing colon)
 export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$PROJECT_DIR"
