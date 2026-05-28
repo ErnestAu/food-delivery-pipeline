@@ -30,13 +30,17 @@ export LANG="${LANG:-en_US.UTF-8}"
 # blocks cron-spawned binaries from reading files under ~/Documents.
 PYTHON="$HOME/venvs/food-delivery/bin/python"
 
-# Ensure Python can import the local simulator package (no trailing colon)
-export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$PROJECT_DIR"
+# Define a wrapper that always sets PYTHONPATH inline — avoids inheritance issues
+# under cron where exported vars sometimes don't propagate to subshells.
+run_python() {
+    PYTHONPATH="$PROJECT_DIR" "$PYTHON" "$@"
+}
 
 {
     echo "==============================="
     echo "Live tick: $(date -u)"
     echo "==============================="
+    echo "DEBUG  CWD=$(pwd)  PYTHON=$PYTHON  PROJECT_DIR=$PROJECT_DIR"
 
     NOW_UTC_DATE="$(date -u +'%Y-%m-%d')"
     NOW_UTC_HOUR="$(date -u +'%H')"
@@ -71,7 +75,7 @@ export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$PROJECT_DIR"
             BACKFILL_HOUR_INT=$((10#$BACKFILL_HOUR))
 
             echo "    > Backfill $BACKFILL_DATE hour=$BACKFILL_HOUR"
-            "$PYTHON" -m simulator.main \
+            run_python -m simulator.main \
                 --date "$BACKFILL_DATE" \
                 --hour "$BACKFILL_HOUR_INT" \
                 --daily-target "$DAILY_TARGET"
@@ -83,7 +87,7 @@ export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$PROJECT_DIR"
     # --- Current hour (live) ---
     echo ""
     echo "[1/2] Generating events for current hour..."
-    "$PYTHON" -m simulator.main --live --daily-target "$DAILY_TARGET"
+    run_python -m simulator.main --live --daily-target "$DAILY_TARGET"
 
     # --- Sync everything to S3 ---
     echo ""
