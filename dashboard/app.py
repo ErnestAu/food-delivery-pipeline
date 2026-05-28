@@ -176,7 +176,7 @@ def load_date_range() -> tuple[date, date]:
 
 
 # ---------- Sidebar ----------
-st.sidebar.title("Filters")
+st.sidebar.title("⚙️ Filters")
 
 min_date, max_date = load_date_range()
 
@@ -184,35 +184,44 @@ min_date, max_date = load_date_range()
 default_end = max_date - timedelta(days=1) if max_date == date.today() else max_date
 default_start = max(min_date, default_end - timedelta(days=30))
 
-date_range = st.sidebar.date_input(
+# Initialize the date picker state once
+if "date_picker" not in st.session_state:
+    st.session_state.date_picker = (default_start, default_end)
+
+# Preset buttons — one-shot setters for the date picker below
+st.sidebar.caption("Quick presets")
+p1, p2, p3, p4 = st.sidebar.columns(4)
+if p1.button("7d"):
+    st.session_state.date_picker = (max(min_date, default_end - timedelta(days=6)), default_end)
+    st.rerun()
+if p2.button("30d"):
+    st.session_state.date_picker = (max(min_date, default_end - timedelta(days=29)), default_end)
+    st.rerun()
+if p3.button("90d"):
+    st.session_state.date_picker = (max(min_date, default_end - timedelta(days=89)), default_end)
+    st.rerun()
+if p4.button("All"):
+    st.session_state.date_picker = (min_date, default_end)
+    st.rerun()
+
+# The actual date input — single source of truth, bound to session state via key
+selected = st.sidebar.date_input(
     "Date range",
-    value=(default_start, default_end),
     min_value=min_date,
     max_value=max_date,
+    key="date_picker",
 )
 
-if isinstance(date_range, tuple) and len(date_range) == 2:
-    start_date, end_date = date_range
+# date_input returns a tuple once both dates are picked; a single date while user is mid-selection
+if isinstance(selected, tuple) and len(selected) == 2:
+    start_date, end_date = selected
 else:
-    start_date = end_date = date_range  # fallback if user selected single date
+    # User has selected only one date so far — wait for the second before reloading
+    st.sidebar.info("Pick an end date to apply the range.")
+    st.stop()
 
 st.sidebar.caption(f"Data available: {min_date} → {max_date}")
 st.sidebar.divider()
-
-quick_range = st.sidebar.radio(
-    "Quick ranges",
-    ["Custom", "Last 7 days", "Last 30 days", "Last 90 days", "All time"],
-    index=0,
-)
-if quick_range != "Custom":
-    if quick_range == "All time":
-        start_date, end_date = min_date, default_end
-    else:
-        days = {"Last 7 days": 7, "Last 30 days": 30, "Last 90 days": 90}[quick_range]
-        end_date = default_end
-        start_date = max(min_date, end_date - timedelta(days=days - 1))
-
-st.sidebar.caption(f"Showing {start_date} → {end_date}")
 
 if st.sidebar.button("🔄 Refresh data"):
     st.cache_data.clear()
@@ -262,12 +271,11 @@ with trend_col1:
     fig = px.area(
         daily,
         x="order_date",
-        y=["delivered_orders", "cancelled_orders", "in_progress_orders"],
+        y=["delivered_orders", "cancelled_orders"],
         labels={"value": "Orders", "order_date": "Date", "variable": "Status"},
         color_discrete_map={
             "delivered_orders": COLOR_DELIVERED,
             "cancelled_orders": COLOR_CANCELLED,
-            "in_progress_orders": COLOR_IN_PROGRESS,
         },
         title="Orders by status",
     )
