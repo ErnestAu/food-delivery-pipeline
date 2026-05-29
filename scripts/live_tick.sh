@@ -24,16 +24,35 @@ export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 export TMPDIR="${TMPDIR:-/tmp}"                                # Python uses this for misc temp resolution
 export LC_ALL="${LC_ALL:-en_US.UTF-8}"                         # avoid locale-related path edge cases
 export LANG="${LANG:-en_US.UTF-8}"
+export PYTHONPATH="$PROJECT_DIR"                               # lets Python find simulator package
 
 # Use the project's venv Python directly (no shell activation needed).
-# IMPORTANT: venv lives in ~/venvs/ (outside ~/Documents) because macOS TCC
-# blocks cron-spawned binaries from reading files under ~/Documents.
-PYTHON="$HOME/venvs/food-delivery/bin/python"
+# The /bin/bash crontab invocation makes bash the TCC responsible process,
+# so cron-python can read .venv/ under ~/Documents without issues.
+PYTHON="$PROJECT_DIR/.venv/bin/python"
 
-# Define a wrapper that always sets PYTHONPATH inline — avoids inheritance issues
-# under cron where exported vars sometimes don't propagate to subshells.
 run_python() {
-    PYTHONPATH="$PROJECT_DIR" "$PYTHON" "$@"
+    "$PYTHON" "$@"
+}
+
+# Preflight: validate every assumption BEFORE generating data, so failures are
+# loud and self-diagnosing instead of silent partial runs that stop syncing to S3.
+preflight() {
+    local ok=1
+    echo "--- preflight ---"
+    if [[ -x "$PYTHON" ]]; then echo "  [OK]   venv python ($PYTHON)"; else echo "  [FAIL] venv python missing: $PYTHON"; ok=0; fi
+    if command -v aws >/dev/null 2>&1; then echo "  [OK]   aws CLI ($(command -v aws))"; else echo "  [FAIL] aws CLI not on PATH"; ok=0; fi
+    if "$PYTHON" -c "import simulator.main" >/dev/null 2>&1; then
+        echo "  [OK]   simulator importable"
+    else
+        echo "  [FAIL] cannot import simulator (PYTHONPATH=${PYTHONPATH:-UNSET})."
+        echo "         If launched by cron: the crontab MUST call '/bin/bash $0', NOT the bare"
+        echo "         script path. macOS TCC denies a script living in ~/Documents read-access to"
+        echo "         its own folder when cron execs it via shebang; routing through /bin/bash fixes it."
+        ok=0
+    fi
+    if (( ok == 0 )); then echo "PREFLIGHT FAILED — aborting before generating partial data."; exit 1; fi
+    echo "  preflight passed."
 }
 
 {
@@ -41,6 +60,7 @@ run_python() {
     echo "Live tick: $(date -u)"
     echo "==============================="
     echo "DEBUG  CWD=$(pwd)  PYTHON=$PYTHON  PROJECT_DIR=$PROJECT_DIR"
+    preflight
 
     NOW_UTC_DATE="$(date -u +'%Y-%m-%d')"
     NOW_UTC_HOUR="$(date -u +'%H')"

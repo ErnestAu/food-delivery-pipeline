@@ -101,8 +101,8 @@ A few choices and the reasoning, since "why" is usually more interesting than "w
 # 1. Clone and set up venv
 git clone https://github.com/ErnestAu/food-delivery-pipeline.git
 cd food-delivery-pipeline
-python -m venv ~/venvs/food-delivery        # outside ~/Documents (macOS TCC)
-source ~/venvs/food-delivery/bin/activate
+python -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 
 # 2. Generate sample data (single date, or a range)

@@ -168,8 +168,6 @@ def run(
 ) -> None:
     """Generate orders for a date. If hour is provided, only generate within that hour."""
     label = f"{date} hour={hour:02d}" if hour is not None else date
-    print(f"\n=== Food Delivery Simulator ===")
-    print(f"  {label}  |  Orders: {num_orders}  |  Seed: {cfg.seed}")
 
     customers, vendors, drivers, menu_items = _load_or_generate_dims(cfg, regen_dims)
 
@@ -192,6 +190,9 @@ def run(
     else:
         seed = _derive_seed(cfg.seed, date)
     rng = random.Random(seed)
+
+    print(f"\n=== Food Delivery Simulator ===")
+    print(f"  {label}  |  Orders: {num_orders}  |  Seed: {seed}")
 
     all_events: list = []
 

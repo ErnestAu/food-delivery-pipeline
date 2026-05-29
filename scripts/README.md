@@ -24,11 +24,21 @@ Hourly tick script — generates events for the current hour, **auto-backfills a
 3. Add to crontab (`crontab -e`):
    ```cron
    # Hourly food delivery simulator tick (runs at minute 5 each hour)
-   5 * * * * /Users/ernestau/Documents/food-delivery-pipeline/scripts/live_tick.sh
+   5 * * * * /bin/bash /Users/ernestau/Documents/food-delivery-pipeline/scripts/live_tick.sh
    ```
 
    Note: minute 5 (not 0) gives a small buffer so events naturally fall within
    the current hour rather than overlapping the hour boundary.
+
+   **IMPORTANT — invoke via `/bin/bash`, not the bare script path.** macOS TCC
+   assigns the "responsible process" from whatever cron `execve`s. If that is the
+   script itself (which lives in `~/Documents`, a TCC-protected folder), TCC denies
+   the script's child `python` read-access to `~/Documents` — so `import simulator`
+   fails with `ModuleNotFoundError`, the run dies before the S3 sync, and the dashboard
+   silently stops updating. Routing through `/bin/bash` (a system binary in an
+   unprotected path) makes `/bin/bash` the responsible process, which has proper
+   access. The script's preflight check will catch this and print a pointer if it
+   ever regresses.
 
 4. Check logs:
    ```bash
@@ -36,26 +46,19 @@ Hourly tick script — generates events for the current hour, **auto-backfills a
    tail -50 logs/live_tick_*.log
    ```
 
-### Venv location
+### Venv
 
-The venv lives at `~/venvs/food-delivery/`, **not** in the project folder.
-
-**Why outside the repo:** macOS TCC (Transparency, Consent, Control) protects
-`~/Documents/` — even with cron in Full Disk Access, child binaries spawned by
-cron can't read files under Documents. The venv's `python` binary needs to read
-its own `pyvenv.cfg` at startup, which fails with `PermissionError` if the venv
-is inside `~/Documents/`.
+The venv lives at `.venv/` in the project root (the standard location).
 
 To recreate the venv if needed:
 ```bash
-mkdir -p ~/venvs
-python -m venv ~/venvs/food-delivery
-~/venvs/food-delivery/bin/pip install -r requirements.txt
+python -m venv .venv
+.venv/bin/pip install -r requirements.txt
 ```
 
-For interactive dev (running Streamlit etc.), activate the same venv:
+For interactive dev (running Streamlit etc.), activate it:
 ```bash
-source ~/venvs/food-delivery/bin/activate
+source .venv/bin/activate
 ```
 
 ### Troubleshooting
@@ -72,6 +75,10 @@ source ~/venvs/food-delivery/bin/activate
 - Check `cfg.raw_base_path` in `simulator/config.py` — should be `data/raw` relative to CWD.
 - Script `cd`s into project root first, so this should work.
 
-**Python errors like `failed to make path absolute` or `PermissionError on .venv/pyvenv.cfg`:**
-- The venv is probably inside `~/Documents/`. macOS TCC blocks cron-spawned python from reading it.
-- Fix: recreate the venv at `~/venvs/food-delivery/` (see "Venv location" above).
+**`ModuleNotFoundError: No module named 'simulator'` under cron (but works when run by hand):**
+- Same macOS TCC root cause, different symptom. The crontab is invoking the script via its
+  bare path (`5 * * * * /Users/.../live_tick.sh`), so the in-`~/Documents` script becomes the
+  TCC responsible process and its child `python` is denied read-access to `~/Documents` —
+  the `simulator` package is right there but invisible to the import.
+- Fix: prefix the crontab command with `/bin/bash` (see step 3 above). The preflight check
+  prints a reminder if this regresses.
