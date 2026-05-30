@@ -67,14 +67,6 @@ source .venv/bin/activate
 - macOS requires giving `cron` Full Disk Access: System Settings → Privacy → Full Disk Access → add `/usr/sbin/cron`
 - Check cron is enabled: `sudo launchctl list | grep cron`
 
-**AWS CLI fails in cron but works manually:**
-- cron has a minimal PATH. Script handles this by exporting PATH explicitly.
-- If using AWS SSO or temp creds: cron can't refresh those. Use a long-lived IAM access key for `food-delivery-cli` (already set up).
-
-**Simulator runs but no files written:**
-- Check `cfg.raw_base_path` in `simulator/config.py` — should be `data/raw` relative to CWD.
-- Script `cd`s into project root first, so this should work.
-
 **`ModuleNotFoundError: No module named 'simulator'` under cron (but works when run by hand):**
 - Same macOS TCC root cause, different symptom. The crontab is invoking the script via its
   bare path (`5 * * * * /Users/.../live_tick.sh`), so the in-`~/Documents` script becomes the
