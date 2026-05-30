@@ -429,9 +429,9 @@ st.subheader("❌ Cancellation analysis")
 cancel_df = load_cancellation_reasons(start_date, end_date)
 
 CANCEL_ACTOR_COLORS = {
-    "customer": "#f97316",   # orange
-    "vendor": "#8b5cf6",     # purple
-    "driver": "#06b6d4",     # cyan
+    "customer": "#ef4444",   # red — primary focus
+    "vendor": "#f97316",     # orange
+    "driver": "#3b82f6",     # blue
     "system": "#6b7280",     # gray
 }
 
