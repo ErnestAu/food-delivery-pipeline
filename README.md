@@ -114,21 +114,22 @@ food-delivery-pipeline/
 │   ├── writer.py                       # Partitioned JSONL writer
 │   └── main.py                         # CLI with --date / --range / --live / --hour modes
 ├── scripts/
-│   └── live_tick.sh                    # Hourly cron driver (simulator + S3 sync + backfill)
+│   ├── live_tick.sh                    # Hourly cron driver (simulator + S3 sync + backfill)
+│   └── README.md                       # Cron setup, troubleshooting, TCC notes
 ├── databricks/
-│   └── food-delivery-etl/transformations/   # SDP source files
-│       ├── s3_to_bronze_dim.py         # Bronze: dims (MVs) + events (streaming table)
-│       ├── silver_order_events.py      # Silver: dedupe + flatten payload
-│       ├── gold_fct_orders.py          # Gold: pivot events per order_id
+│   └── food-delivery-etl/transformations/   # Lakeflow SDP source files
+│       ├── s3_to_bronze.py             # Bronze: events (streaming table) + dims (MVs)
+│       ├── silver.py                   # Silver: dedupe by event_id + flatten payload
+│       ├── gold_fct_orders.py          # Gold: pivot events into one row per order
 │       ├── gold_fct_order_items.py     # Gold: explode items array
 │       ├── gold_fct_order_events.py    # Gold: slim event log
 │       ├── gold_dims.py                # Gold: Type 1 dim pass-throughs
-│       └── gold_fct_daily_metrics.py   # Gold: daily KPI mart
+│       └── gold_fct_daily_metrics.py   # Gold: pre-aggregated daily KPI mart
 ├── dashboard/
-│   └── app.py                          # Streamlit dashboard
+│   └── app.py                          # Streamlit ops dashboard
+├── docs/                               # Architecture diagrams + dashboard screenshots
 ├── data/
 │   └── samples/                        # Committed sample data + schema docs
-├── system-design.svg                   # Architecture diagram
 └── requirements.txt
 ```
 
