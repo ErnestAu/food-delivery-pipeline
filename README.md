@@ -7,7 +7,9 @@
 
 🔗 **Live dashboard:** [ernestau-food-delivery-ops.streamlit.app](https://ernestau-food-delivery-ops.streamlit.app) 
 
-📊 **Architecture diagram:** [`system-design.svg`](system-design.svg)
+📊 **Architecture:**
+
+![Architecture](system-design/v0/architecture.png)
 
 ---
 
@@ -21,31 +23,7 @@ Pipeline cadence: producer runs hourly at `:05`, Databricks pipeline runs at `:1
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│ Producer (every hour at :05 via cron)                               │
-│   simulator/main.py --live   →   JSONL files in data/raw/           │
-│                                  └→ aws s3 sync to S3               │
-└─────────────────────────────────────────────────────────────────────┘
-                                  ↓
-┌─────────────────────────────────────────────────────────────────────┐
-│ Lakeflow SDP pipeline (every hour at :15, triggered)                │
-│                                                                     │
-│   bronze  ←  Auto Loader (cloudFiles) reads JSONL + dim CSVs        │
-│     ↓                                                               │
-│   silver  ←  dedupe by event_id, flatten payload struct             │
-│     ↓                                                               │
-│   gold    ←  Kimball star schema: facts, dims, marts                │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-                                  ↓
-┌─────────────────────────────────────────────────────────────────────┐
-│ Consumer                                                            │
-│   Streamlit dashboard → Databricks SQL Warehouse → gold tables      │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-See [`system-design.svg`](system-design.svg) for the full visual.
+See the diagram above, or the full [requirements and data model](system-design/v0/requirements-and-data-model.png).
 
 ---
 
