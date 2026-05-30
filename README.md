@@ -7,6 +7,8 @@
 
 🔗 **Live dashboard:** [ernestau-food-delivery-ops.streamlit.app](https://ernestau-food-delivery-ops.streamlit.app) 
 
+📋 **Requirements & data model:** [`requirements-and-data-model.png`](system-design/v0/requirements-and-data-model.png)
+
 📊 **Architecture:**
 
 ![Architecture](system-design/v0/end-to-end-architecture.png)
@@ -20,10 +22,6 @@ A Python simulator pretends to be a busy food delivery service — customers pla
 Pipeline cadence: producer runs hourly at `:05`, Databricks pipeline runs at `:15`. New events are queryable in the dashboard within ~15 minutes of being generated.
 
 ---
-
-## Architecture
-
-See the diagram above, or the full [requirements and data model](system-design/v0/requirements-and-data-model.png).
 
 ---
 
