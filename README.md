@@ -9,7 +9,7 @@
 
 📊 **Architecture:**
 
-![Architecture](system-design/v0/architecture.png)
+![Architecture](system-design/v0/end-to-end-architecture.png)
 
 ---
 
