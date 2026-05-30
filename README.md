@@ -70,9 +70,7 @@ A few choices and the reasoning, since "why" is usually more interesting than "w
 | **Ingestion model** | Streaming via Kafka | Batch via Auto Loader | Hourly cadence is enough for an ops dashboard — Kafka's second-level latency would be over-engineering. v1 upgrade if real-time were ever needed. |
 | **Payload representation in bronze** | Raw JSON string parsed in silver | Merged struct (Auto Loader's default) | Parquet shreds nested struct fields into separate physical columns, so queries on `payload.gmv` are as fast as flat columns. Bronze stays interpretable. Would flip to raw string only for bytes-for-bytes audit fidelity. |
 | **Dim semantics** | SCD2 from day one | Type 1 (overwrite) | Simulator currently doesn't mutate dims, so SCD2 would produce zero historical rows — pure complexity, no payoff. v1 enhancement when simulator adds dim mutations. |
-| **Layer organization** | One pipeline per layer (bronze, silver, gold pipelines) | One pipeline across all three layers | SDP infers cross-layer dependencies automatically. Single DAG view, single cluster spinup, lower cost. |
 | **Streaming vs materialized view** | All streaming | Streaming for events/silver, MV for gold facts that need GROUP BY | Streaming gives incremental processing for high-volume sources. GROUP BY pivots in gold need full recompute, which an MV does correctly. Right tool per job. |
-| **Producer scheduling** | Manual runs | cron + state-file backfill | Catches up automatically when laptop wakes from sleep (up to 168h). v1 upgrade path is launchd or GitHub Actions for 24/7. |
 
 ---
 
@@ -137,12 +135,11 @@ food-delivery-pipeline/
 
 ## What's next (v1+)
 
-Bookmarked enhancements, in roughly priority order:
+Bookmarked enhancements:
 
 - **On-time delivery tracking** — add a `promised_delivery_minutes` to the simulator and a derived `is_on_time` flag in gold. Unlocks "on-time rate" as the #1 ops KPI most food delivery companies track.
 - **SCD2 dims** — once the simulator emits dim mutations (vendor renames, customer moves), migrate `dim_*` to SCD2 using `dp.create_auto_cdc_flow`.
 - **Data quality expectations** — `@dp.expect` rules in silver/gold (`event_id IS NOT NULL`, `gmv >= 0`, etc.). Surfaces in the pipeline UI.
-- **launchd over cron** — modern macOS scheduler with better TCC handling. cron has been deprecated by Apple since macOS 10.4.
 - **Databricks Asset Bundles** — pipeline config + secrets + permissions as code. Promote dev → prod by switching catalogs.
 - **Kafka in place of file ingestion** — replace file-based Auto Loader with a Kafka source for true real-time. Was the production target in the original design doc; deferred for v0.
 
