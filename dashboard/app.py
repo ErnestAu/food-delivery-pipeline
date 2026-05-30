@@ -428,6 +428,13 @@ st.subheader("❌ Cancellation analysis")
 
 cancel_df = load_cancellation_reasons(start_date, end_date)
 
+CANCEL_ACTOR_COLORS = {
+    "customer": "#f97316",   # orange
+    "vendor": "#8b5cf6",     # purple
+    "driver": "#06b6d4",     # cyan
+    "system": "#6b7280",     # gray
+}
+
 cancel_col1, cancel_col2 = st.columns(2)
 
 with cancel_col1:
@@ -439,6 +446,8 @@ with cancel_col1:
             names="cancelled_by",
             title="Who cancels?",
             hole=0.5,
+            color="cancelled_by",
+            color_discrete_map=CANCEL_ACTOR_COLORS,
         )
         fig.update_layout(height=350, margin=dict(l=0, r=0, t=40, b=0))
         st.plotly_chart(fig, width="stretch")
@@ -455,6 +464,7 @@ with cancel_col2:
             orientation="h",
             labels={"cnt": "Cancellations", "cancel_reason": "", "cancelled_by": "Cancelled by"},
             title="Top cancellation reasons",
+            color_discrete_map=CANCEL_ACTOR_COLORS,
         )
         fig.update_layout(height=350, margin=dict(l=0, r=0, t=40, b=0))
         st.plotly_chart(fig, width="stretch")
