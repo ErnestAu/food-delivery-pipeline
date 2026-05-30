@@ -7,11 +7,16 @@
 
 🔗 **Live dashboard:** [ernestau-food-delivery-ops.streamlit.app](https://ernestau-food-delivery-ops.streamlit.app) 
 
-📋 **Requirements & data model:** [`requirements-and-data-model.png`](system-design/v0/requirements-and-data-model.png)
+📋 **Requirements & data model:** [`requirements-and-data-model.png`](docs/requirements-and-data-model.png)
 
 📊 **Architecture:**
 
-![Architecture](system-design/v0/end-to-end-architecture.png)
+![Architecture](docs/end-to-end-architecture.png)
+
+📸 **Dashboard preview:**
+
+![Dashboard — KPIs and trends](docs/dashboard-kpis-and-trends.png)
+![Dashboard — Cancellation analysis](docs/dashboard-cancellations.png)
 
 ---
 
