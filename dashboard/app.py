@@ -196,21 +196,27 @@ default_start = max(min_date, default_end - timedelta(days=30))
 # Initialize the date picker state once
 if "date_picker" not in st.session_state:
     st.session_state.date_picker = (default_start, default_end)
+if "active_preset" not in st.session_state:
+    st.session_state.active_preset = "30d"  # matches default_start logic
 
 # Preset buttons — one-shot setters for the date picker below
 st.sidebar.caption("Quick presets")
 p1, p2, p3, p4 = st.sidebar.columns(4)
-if p1.button("7d"):
+if p1.button("7d", type="primary" if st.session_state.active_preset == "7d" else "secondary"):
     st.session_state.date_picker = (max(min_date, default_end - timedelta(days=6)), default_end)
+    st.session_state.active_preset = "7d"
     st.rerun()
-if p2.button("30d"):
+if p2.button("30d", type="primary" if st.session_state.active_preset == "30d" else "secondary"):
     st.session_state.date_picker = (max(min_date, default_end - timedelta(days=29)), default_end)
+    st.session_state.active_preset = "30d"
     st.rerun()
-if p3.button("90d"):
+if p3.button("90d", type="primary" if st.session_state.active_preset == "90d" else "secondary"):
     st.session_state.date_picker = (max(min_date, default_end - timedelta(days=89)), default_end)
+    st.session_state.active_preset = "90d"
     st.rerun()
-if p4.button("All"):
+if p4.button("All", type="primary" if st.session_state.active_preset == "All" else "secondary"):
     st.session_state.date_picker = (min_date, default_end)
+    st.session_state.active_preset = "All"
     st.rerun()
 
 # The actual date input — single source of truth, bound to session state via key
@@ -224,6 +230,15 @@ selected = st.sidebar.date_input(
 # date_input returns a tuple once both dates are picked; a single date while user is mid-selection
 if isinstance(selected, tuple) and len(selected) == 2:
     start_date, end_date = selected
+    # If user manually changed the date picker, clear the active preset highlight
+    preset_ranges = {
+        "7d": (max(min_date, default_end - timedelta(days=6)), default_end),
+        "30d": (max(min_date, default_end - timedelta(days=29)), default_end),
+        "90d": (max(min_date, default_end - timedelta(days=89)), default_end),
+        "All": (min_date, default_end),
+    }
+    if (start_date, end_date) not in preset_ranges.values():
+        st.session_state.active_preset = None
 else:
     # User has selected only one date so far — wait for the second before reloading
     st.sidebar.info("Pick an end date to apply the range.")
