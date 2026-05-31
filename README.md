@@ -9,6 +9,8 @@
 
 📋 **Requirements & data model:** [`requirements-and-data-model.png`](docs/requirements-and-data-model.png)
 
+🎥 **YouTube video walkthrough:** [Food Delivery Pipeline Walkthrough](https://www.youtube.com/watch?v=vWSuyq0sTb4)
+
 📊 **Architecture:**
 
 ![Architecture](docs/end-to-end-architecture.png)
