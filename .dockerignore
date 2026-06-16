@@ -1,0 +1,12 @@
+.venv/
+data/
+logs/
+.git/
+.env
+__pycache__/
+*.pyc
+.DS_Store
+dashboard/
+databricks/
+docs/
+scripts/

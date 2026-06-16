@@ -1,0 +1,2 @@
+# Simulator
+faker==26.0.0
