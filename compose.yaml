@@ -1,0 +1,6 @@
+services:
+  sim:
+    build: .
+    image: food-sim:v1
+    volumes:
+      - ./data:/app/data
