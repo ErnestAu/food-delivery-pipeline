@@ -254,7 +254,7 @@ def main() -> None:
 
     # --live mode: generate only for the current hour
     if args.live:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         date_str = now.strftime("%Y-%m-%d")
         hour = now.hour
         live_rng = random.Random()  # truly random jitter for live mode
@@ -281,7 +281,7 @@ def main() -> None:
         end = (
             datetime.strptime(args.end_date, "%Y-%m-%d")
             if args.end_date
-            else datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+            else datetime.now(timezone.utc).replace(tzinfo=None, hour=0, minute=0, second=0, microsecond=0)
         )
         num_days = (end - start).days + 1
         dates = [(start + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(num_days)]
