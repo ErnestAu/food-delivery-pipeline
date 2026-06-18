@@ -1,0 +1,4 @@
+services:
+  scheduler:
+    volumes:
+      - ../simulator:/usr/local/airflow/simulator
