@@ -1,45 +1,37 @@
-Overview
-========
+# Airflow Orchestration (local, via Astro CLI)
 
-Welcome to Astronomer! This project was generated after you ran 'astro dev init' using the Astronomer CLI. This readme describes the contents of the project, as well as how to run Apache Airflow on your local machine.
+This folder is a local [Astro CLI](https://www.astronomer.io/docs/astro/cli/overview) project that runs Apache Airflow in Docker. It defines a single DAG, **`food_delivery_pipeline`**, that orchestrates the whole batch flow as one unit — replacing the v0 setup of two disconnected schedulers (macOS cron + a Databricks scheduled job "synced by timing").
 
-Project Contents
-================
+## The DAG
 
-Your Astro project contains the following files and folders:
+`dags/food_delivery_pipeline.py` — three tasks, run in order:
 
-- dags: This folder contains the Python files for your Airflow DAGs. By default, this directory includes one example DAG:
-    - `example_astronauts`: This DAG shows a simple ETL pipeline example that queries the list of astronauts currently in space from the Open Notify API and prints a statement for each astronaut. The DAG uses the TaskFlow API to define tasks in Python, and dynamic task mapping to dynamically print a statement for each astronaut. For more on how this DAG works, see our [Getting started tutorial](https://www.astronomer.io/docs/learn/get-started-with-airflow).
-- Dockerfile: This file contains a versioned Astro Runtime Docker image that provides a differentiated Airflow experience. If you want to execute other commands or overrides at runtime, specify them here.
-- include: This folder contains any additional files that you want to include as part of your project. It is empty by default.
-- packages.txt: Install OS-level packages needed for your project by adding them to this file. It is empty by default.
-- requirements.txt: Install Python packages needed for your project by adding them to this file. It is empty by default.
-- plugins: Add custom or community plugins for your project to this file. It is empty by default.
-- airflow_settings.yaml: Use this local-only file to specify Airflow Connections, Variables, and Pools instead of entering them in the Airflow UI as you develop DAGs in this project.
+```
+generate_events  ──▶  sync_to_s3  ──▶  trigger_databricks
+```
 
-Deploy Your Project Locally
-===========================
+| Task | Operator | What it does |
+|---|---|---|
+| `generate_events` | `BashOperator` | Runs the simulator for the current hour (`python -m simulator.main --live`) inside the scheduler container. |
+| `sync_to_s3` | `PythonOperator` + `S3Hook` | Uploads the new JSONL to S3 (`aws_default` connection). |
+| `trigger_databricks` | `DatabricksRunNowOperator` | Triggers the existing Databricks job and waits for it (`databricks_default` connection). |
 
-Start Airflow on your local machine by running 'astro dev start'.
+The DAG is `schedule=None` (manual-trigger only) so it coexists with the still-running cron feed without double-writing. It's an on-demand demonstration of unified orchestration, not the 24/7 production driver.
 
-This command will spin up five Docker containers on your machine, each for a different Airflow component:
+## Run it
 
-- Postgres: Airflow's Metadata Database
-- Scheduler: The Airflow component responsible for monitoring and triggering tasks
-- DAG Processor: The Airflow component responsible for parsing DAGs
-- API Server: The Airflow component responsible for serving the Airflow UI and API
-- Triggerer: The Airflow component responsible for triggering deferred tasks
+**Prerequisites:** Docker Desktop running + the [Astro CLI](https://www.astronomer.io/docs/astro/cli/install-cli) (`brew install astro`).
 
-When all five containers are ready the command will open the browser to the Airflow UI at http://localhost:8080/. You should also be able to access your Postgres Database at 'localhost:5432/postgres' with username 'postgres' and password 'postgres'.
+```bash
+astro dev start      # builds + starts Airflow (UI at http://localhost:8080, admin/admin)
+astro dev restart    # rebuild after changing requirements.txt
+astro dev stop       # stop the containers (frees RAM)
+```
 
-Note: If you already have either of the above ports allocated, you can either [stop your existing Docker containers or change the port](https://www.astronomer.io/docs/astro/cli/troubleshoot-locally#ports-are-not-available-for-my-local-airflow-webserver).
+## Setup notes
 
-Deploy Your Project to Astronomer
-=================================
-
-If you have an Astronomer account, pushing code to a Deployment on Astronomer is simple. For deploying instructions, refer to Astronomer documentation: https://www.astronomer.io/docs/astro/deploy-code/
-
-Contact
-=======
-
-The Astronomer CLI is maintained with love by the Astronomer team. To report a bug or suggest a change, reach out to our support.
+- **Simulator code** is bind-mounted into the scheduler via [`docker-compose.override.yml`](docker-compose.override.yml) (`../simulator → /usr/local/airflow/simulator`) — single source of truth, no copy.
+- **Connections** (create under Admin → Connections in the UI):
+  - `aws_default` — AWS access key + secret (for the S3 sync).
+  - `databricks_default` — host `https://<workspace>` + a full-scope PAT (`dapi…`) in the password field.
+- **Python deps** for the Airflow image live in [`requirements.txt`](requirements.txt) (`faker`, the Amazon + Databricks providers).
