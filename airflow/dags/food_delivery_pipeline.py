@@ -5,6 +5,7 @@ from airflow.providers.databricks.operators.databricks import DatabricksRunNowOp
 from airflow.sdk import DAG
 from airflow.providers.standard.operators.bash import BashOperator
 from pendulum import datetime
+from datetime import timedelta
 
 with DAG(
     dag_id="food_delivery_pipeline",
@@ -12,6 +13,7 @@ with DAG(
     schedule=None,
     catchup=False,
     tags=["food-delivery"],
+    default_args={"retries": 2, "retry_delay": timedelta(minutes=2)},
 ):
     generate_events = BashOperator(
         task_id="generate_events",
