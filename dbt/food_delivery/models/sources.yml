@@ -1,0 +1,17 @@
+version: 2
+
+sources:
+  - name: bronze
+    database: food_delivery
+    schema: bronze
+    tables:
+      - name: dim_customers
+      - name: dim_vendors
+      - name: dim_drivers
+      - name: dim_menu_items
+
+  - name: silver
+    database: food_delivery
+    schema: silver
+    tables:
+      - name: order_events
