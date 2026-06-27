@@ -1,0 +1,1 @@
+select * from {{ source('bronze', 'dim_menu_items') }}

@@ -1,0 +1,55 @@
+version: 2
+
+models:
+  - name: fct_order_events
+    columns:
+      - name: event_type
+        tests:
+          - accepted_values:
+              values:
+                - order_placed
+                - order_confirmed
+                - order_prepared
+                - order_picked_up
+                - order_delivered
+                - order_cancelled
+      
+  - name: fct_orders
+    tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: >
+              confirmed_at >= placed_at
+              and prepared_at >= confirmed_at
+              and picked_up_at >= prepared_at
+              and delivered_at >= picked_up_at
+    columns:
+      - name: gmv
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+      - name: vendor_id
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_vendor')
+                field: vendor_id
+              config:
+                severity: warn
+      - name: customer_id
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_customer')
+                field: customer_id
+              config:
+                severity: warn
+      - name: driver_id
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_driver')
+                field: driver_id
+              config:
+                severity: warn
