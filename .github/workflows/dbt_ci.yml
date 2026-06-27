@@ -2,9 +2,6 @@ name: dbt CI
 
 on:
   pull_request:
-    paths:
-      - 'dbt/**'
-      - '.github/workflows/dbt_ci.yml'
 
 concurrency:
   group: dbt-ci-${{ github.ref }}
