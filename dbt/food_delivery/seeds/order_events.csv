@@ -1,0 +1,8 @@
+event_id,event_type,order_id,occurred_at,customer_id,vendor_id,driver_id,gmv,food_cost,delivery_fee,service_fee,discount,cancelled_by,cancel_reason
+evt_001,order_placed,ord_001,2026-06-01T10:00:00.000Z,cust_001,vend_001,,1500,1000,200,50,0,,
+evt_002,order_confirmed,ord_001,2026-06-01T10:02:00.000Z,cust_001,vend_001,,,,,,,,
+evt_003,order_prepared,ord_001,2026-06-01T10:20:00.000Z,cust_001,vend_001,,,,,,,,
+evt_004,order_picked_up,ord_001,2026-06-01T10:25:00.000Z,cust_001,vend_001,driv_001,,,,,,,
+evt_005,order_delivered,ord_001,2026-06-01T10:50:00.000Z,cust_001,vend_001,driv_001,,,,,,,
+evt_006,order_placed,ord_002,2026-06-01T11:00:00.000Z,cust_002,vend_002,,800,500,200,30,0,,
+evt_007,order_cancelled,ord_002,2026-06-01T11:01:00.000Z,cust_002,vend_002,,,,,,,customer,changed_mind

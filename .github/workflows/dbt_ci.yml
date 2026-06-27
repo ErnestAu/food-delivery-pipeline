@@ -1,0 +1,44 @@
+name: dbt CI
+
+on:
+  pull_request:
+    paths:
+      - 'dbt/**'
+      - '.github/workflows/dbt_ci.yml'
+
+concurrency:
+  group: dbt-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dbt-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dbt/food_delivery
+    env:
+      DATABRICKS_SERVER_HOSTNAME: ${{ secrets.DATABRICKS_SERVER_HOSTNAME }}
+      DATABRICKS_HTTP_PATH: ${{ secrets.DATABRICKS_HTTP_PATH }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+      DBT_PROFILES_DIR: ${{ github.workspace }}/dbt/food_delivery
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install dbt
+        run: pip install dbt-databricks==1.12.1
+
+      - name: Install dbt packages
+        run: dbt deps
+
+      - name: Seed fixture
+        run: dbt seed --target ci --full-refresh
+
+      - name: Build models
+        run: dbt run --target ci --exclude fct_order_items
+
+      - name: Run tests
+        run: dbt test --target ci

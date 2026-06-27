@@ -1,0 +1,19 @@
+food_delivery:
+  target: dev
+  outputs:
+    dev:
+      type: databricks
+      catalog: food_delivery
+      host: "{{ env_var('DATABRICKS_SERVER_HOSTNAME') }}"
+      http_path: "{{ env_var('DATABRICKS_HTTP_PATH') }}"
+      schema: gold_dbt
+      threads: 4
+      token: "{{ env_var('DATABRICKS_TOKEN') }}"
+    ci:
+      type: databricks
+      catalog: food_delivery
+      host: "{{ env_var('DATABRICKS_SERVER_HOSTNAME') }}"
+      http_path: "{{ env_var('DATABRICKS_HTTP_PATH') }}"
+      schema: gold_dbt_ci
+      threads: 4
+      token: "{{ env_var('DATABRICKS_TOKEN') }}"
