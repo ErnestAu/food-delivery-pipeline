@@ -2,19 +2,23 @@ version: 2
 
 models:
   - name: fct_order_events
+    description: "Event-grain log: one row per order lifecycle event. Append-only source of truth for state transitions."
     columns:
       - name: event_type
+        description: "Lifecycle stage of the event; constrained to the known order states."
         tests:
           - accepted_values:
-              values:
-                - order_placed
-                - order_confirmed
-                - order_prepared
-                - order_picked_up
-                - order_delivered
-                - order_cancelled
-      
+              arguments:
+                values:
+                  - order_placed
+                  - order_confirmed
+                  - order_prepared
+                  - order_picked_up
+                  - order_delivered
+                  - order_cancelled
+
   - name: fct_orders
+    description: "Order-grain fact: one row per order, pivoting events into lifecycle timestamps, measures, and a derived final_status."
     tests:
       - dbt_utils.expression_is_true:
           arguments:
@@ -24,12 +28,18 @@ models:
               and picked_up_at >= prepared_at
               and delivered_at >= picked_up_at
     columns:
+      - name: order_id
+        description: "Unique identifier for the order. Primary key."
       - name: gmv
+        description: "Gross merchandise value (order total). Should never be negative."
         tests:
           - dbt_utils.accepted_range:
               arguments:
                 min_value: 0
+      - name: final_status
+        description: "Derived terminal status (delivered, cancelled, in_transit, prepared, confirmed, placed, unknown)."
       - name: vendor_id
+        description: "FK to dim_vendor."
         tests:
           - relationships:
               arguments:
@@ -38,6 +48,7 @@ models:
               config:
                 severity: warn
       - name: customer_id
+        description: "FK to dim_customer."
         tests:
           - relationships:
               arguments:
@@ -46,6 +57,7 @@ models:
               config:
                 severity: warn
       - name: driver_id
+        description: "FK to dim_driver. Null for orders cancelled before pickup."
         tests:
           - relationships:
               arguments:
@@ -53,3 +65,9 @@ models:
                 field: driver_id
               config:
                 severity: warn
+
+  - name: fct_order_items
+    description: "Line-item-grain fact: one row per item within an order, exploded from the order_placed event's items array."
+
+  - name: fct_daily_metrics
+    description: "Daily KPI rollup: one row per day with volume, revenue (delivered only), timing, and activity metrics plus completion/cancellation rates."

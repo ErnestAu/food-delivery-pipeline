@@ -2,21 +2,29 @@ version: 2
 
 sources:
   - name: bronze
+    description: "Raw ingested data landed by the PySpark/Auto Loader pipeline. Dimensions are sourced directly from bronze."
     database: food_delivery
     schema: "{{ 'gold_dbt_ci' if target.name == 'ci' else 'bronze' }}"
     tables:
       - name: dim_customers
+        description: "Customer dimension; one row per customer."
       - name: dim_vendors
+        description: "Vendor (restaurant) dimension; one row per vendor."
       - name: dim_drivers
+        description: "Delivery driver dimension; one row per driver."
       - name: dim_menu_items
-    
+        description: "Menu item dimension; one row per item, linked to a vendor."
+
   - name: silver
+    description: "Cleaned, deduplicated, watermarked order-event stream from the PySpark silver layer."
     database: food_delivery
     schema: "{{ 'gold_dbt_ci' if target.name == 'ci' else 'silver' }}"
     tables:
       - name: order_events
+        description: "One row per order lifecycle event; append-only, deduplicated on event_id."
         columns:
           - name: event_id
+            description: "Unique identifier for each event. Primary key of the event stream."
             tests:
               - unique
               - not_null

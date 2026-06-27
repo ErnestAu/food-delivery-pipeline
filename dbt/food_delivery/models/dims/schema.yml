@@ -1,0 +1,11 @@
+version: 2
+
+models:
+  - name: dim_customer
+    description: "Customer dimension (Type 1 passthrough from bronze)."
+  - name: dim_vendor
+    description: "Vendor/restaurant dimension (Type 1 passthrough from bronze)."
+  - name: dim_driver
+    description: "Delivery driver dimension (Type 1 passthrough from bronze)."
+  - name: dim_menu_item
+    description: "Menu item dimension (Type 1 passthrough from bronze)."
