@@ -24,6 +24,7 @@ from simulator.dims import generate_dims, write_dims
 from simulator.lifecycle import simulate_order
 from simulator.models import Customer, Driver, MenuItem, Vendor
 from simulator.writer import write_events
+from simulator.corrupt import corrupt_events
 
 
 def _load_or_generate_dims(
@@ -214,6 +215,8 @@ def run(
         events = simulate_order(placed_at, customer, vendor, driver, basket, cfg, rng)
         all_events.extend(events)
 
+    all_events = corrupt_events(all_events, cfg.corrupt_rate, rng)
+
     print(f"  Generated {len(all_events)} events from {num_orders} orders.")
 
     file_counts = write_events(all_events, cfg.raw_base_path)
@@ -240,6 +243,8 @@ def main() -> None:
                         help="Base daily order volume (varied by weekday + growth trend)")
     parser.add_argument("--daily-target", type=int, default=300,
                         help="Target daily orders (only used with --live, distributed by hour)")
+    parser.add_argument("--corrupt-rate", type=float, default=0.0, 
+                        help="Fraction of events to corrupt (0.0-1.0). Off by default.")
 
     # Misc
     parser.add_argument("--regen-dims", action="store_true",
@@ -250,7 +255,7 @@ def main() -> None:
     if not args.date and not args.start_date and not args.live:
         parser.error("One of --date, --start-date, or --live is required.")
 
-    cfg = SimConfig(seed=args.seed)
+    cfg = SimConfig(seed=args.seed, corrupt_rate=args.corrupt_rate)
 
     # --live mode: generate only for the current hour
     if args.live:
