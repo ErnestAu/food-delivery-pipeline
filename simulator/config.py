@@ -41,6 +41,7 @@ class SimConfig:
     raw_base_path: str = "data/raw"
 
     seed: int = 42
+    corrupt_rate: float = 0.0
 
 
 # Cuisine types with rough prep-time multipliers
