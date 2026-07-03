@@ -62,7 +62,7 @@ def load_daily_metrics(start: date, end: date) -> pd.DataFrame:
     return run_query(
         f"""
         SELECT *
-        FROM food_delivery.gold.fct_daily_metrics
+        FROM food_delivery.gold_dbt.fct_daily_metrics
         WHERE order_date IS NOT NULL
           AND order_date BETWEEN '{start}' AND '{end}'
         ORDER BY order_date
@@ -85,8 +85,8 @@ def load_top_vendors(start: date, end: date, limit: int = 10) -> pd.DataFrame:
                 SUM(CASE WHEN o.final_status = 'cancelled' THEN 1 ELSE 0 END) * 1.0 / COUNT(*),
                 3
             ) AS cancellation_rate
-        FROM food_delivery.gold.fct_orders o
-        JOIN food_delivery.gold.dim_vendor v ON o.vendor_id = v.vendor_id
+        FROM food_delivery.gold_dbt.fct_orders o
+        JOIN food_delivery.gold_dbt.dim_vendor v ON o.vendor_id = v.vendor_id
         WHERE o.placed_at IS NOT NULL
           AND DATE(o.placed_at) BETWEEN '{start}' AND '{end}'
         GROUP BY v.name, v.cuisine_type, v.city
@@ -104,8 +104,8 @@ def load_cuisine_mix(start: date, end: date) -> pd.DataFrame:
             v.cuisine_type,
             COUNT(o.order_id) AS orders,
             SUM(CASE WHEN o.final_status = 'delivered' THEN o.gmv END) AS gmv
-        FROM food_delivery.gold.fct_orders o
-        JOIN food_delivery.gold.dim_vendor v ON o.vendor_id = v.vendor_id
+        FROM food_delivery.gold_dbt.fct_orders o
+        JOIN food_delivery.gold_dbt.dim_vendor v ON o.vendor_id = v.vendor_id
         WHERE o.placed_at IS NOT NULL
           AND DATE(o.placed_at) BETWEEN '{start}' AND '{end}'
         GROUP BY v.cuisine_type
@@ -122,7 +122,7 @@ def load_hour_heatmap(start: date, end: date) -> pd.DataFrame:
             DAYOFWEEK(placed_at) AS dow,        -- 1=Sun, 7=Sat
             HOUR(placed_at) AS hour_of_day,
             COUNT(*) AS orders
-        FROM food_delivery.gold.fct_orders
+        FROM food_delivery.gold_dbt.fct_orders
         WHERE placed_at IS NOT NULL
           AND DATE(placed_at) BETWEEN '{start}' AND '{end}'
         GROUP BY DAYOFWEEK(placed_at), HOUR(placed_at)
@@ -141,7 +141,7 @@ def load_lifecycle_stages(start: date, end: date) -> pd.DataFrame:
             AVG((unix_timestamp(prepared_at) - unix_timestamp(confirmed_at)) / 60.0) AS prep,
             AVG((unix_timestamp(picked_up_at) - unix_timestamp(prepared_at)) / 60.0) AS pickup_wait,
             AVG((unix_timestamp(delivered_at) - unix_timestamp(picked_up_at)) / 60.0) AS in_transit
-        FROM food_delivery.gold.fct_orders
+        FROM food_delivery.gold_dbt.fct_orders
         WHERE final_status = 'delivered'
           AND placed_at IS NOT NULL
           AND DATE(placed_at) BETWEEN '{start}' AND '{end}'
@@ -159,7 +159,7 @@ def load_cancellation_reasons(start: date, end: date) -> pd.DataFrame:
             cancelled_by,
             cancel_reason,
             COUNT(*) AS cnt
-        FROM food_delivery.gold.fct_orders
+        FROM food_delivery.gold_dbt.fct_orders
         WHERE final_status = 'cancelled'
           AND placed_at IS NOT NULL
           AND DATE(placed_at) BETWEEN '{start}' AND '{end}'
@@ -177,7 +177,7 @@ def load_date_range() -> tuple[date, date]:
         SELECT
             MIN(order_date) AS min_date,
             MAX(order_date) AS max_date
-        FROM food_delivery.gold.fct_daily_metrics
+        FROM food_delivery.gold_dbt.fct_daily_metrics
         WHERE order_date IS NOT NULL
         """
     )
@@ -254,7 +254,7 @@ if st.sidebar.button("🔄 Refresh data"):
 # ---------- Page header ----------
 st.title("🍱 Food Delivery Ops")
 st.caption(
-    f"`food_delivery.gold` · range: **{start_date}** → **{end_date}** · cache 5min"
+    f"`food_delivery.gold_dbt` · range: **{start_date}** → **{end_date}** · cache 5min"
 )
 
 # ---------- Load main data ----------
