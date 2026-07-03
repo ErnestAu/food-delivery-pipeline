@@ -1,7 +1,6 @@
 """Order lifecycle state machine. One call per order, returns list of events."""
 from __future__ import annotations
 import random
-import uuid
 from datetime import datetime, timezone
 
 from simulator.config import CANCEL_REASONS, SimConfig
@@ -10,6 +9,13 @@ from simulator.models import Customer, Driver, MenuItem, OrderEvent, Vendor
 
 def _iso(dt: datetime) -> str:
     return dt.strftime("%Y-%m-%dT%H:%M:%S.") + f"{dt.microsecond // 1000:03d}Z"
+
+
+def _new_id(prefix: str, rng: random.Random) -> str:
+    """Derive the ID from the seeded rng (not uuid4) so re-running the same
+    date/hour with the same seed regenerates identical IDs — makes silver's
+    dropDuplicates(event_id) dedup actually catch reprocessed/replayed batches."""
+    return f"{prefix}_{rng.getrandbits(128):032x}"
 
 
 def _delay(mean: float, std: float, rng: random.Random, minimum: float = 10.0) -> float:
@@ -27,7 +33,7 @@ def _cancel_event(
 ) -> OrderEvent:
     reason = rng.choice(CANCEL_REASONS[actor])
     return OrderEvent(
-        event_id=f"evt_{uuid.uuid4().hex}",
+        event_id=_new_id("evt", rng),
         event_type="order_cancelled",
         order_id=order_id,
         occurred_at=_iso(ts),
@@ -47,7 +53,7 @@ def simulate_order(
     cfg: SimConfig,
     rng: random.Random,
 ) -> list[OrderEvent]:
-    order_id = f"ord_{uuid.uuid4().hex}"
+    order_id = _new_id("ord", rng)
     events: list[OrderEvent] = []
 
     # --- order_placed ---
@@ -78,7 +84,7 @@ def simulate_order(
         "gmv": gmv,
     }
     events.append(OrderEvent(
-        event_id=f"evt_{uuid.uuid4().hex}",
+        event_id=_new_id("evt", rng),
         event_type="order_placed",
         order_id=order_id,
         occurred_at=_iso(placed_at),
@@ -105,7 +111,7 @@ def simulate_order(
         return events
 
     events.append(OrderEvent(
-        event_id=f"evt_{uuid.uuid4().hex}",
+        event_id=_new_id("evt", rng),
         event_type="order_confirmed",
         order_id=order_id,
         occurred_at=_iso(ts),
@@ -125,7 +131,7 @@ def simulate_order(
         return events
 
     events.append(OrderEvent(
-        event_id=f"evt_{uuid.uuid4().hex}",
+        event_id=_new_id("evt", rng),
         event_type="order_prepared",
         order_id=order_id,
         occurred_at=_iso(ts),
@@ -144,7 +150,7 @@ def simulate_order(
         return events
 
     events.append(OrderEvent(
-        event_id=f"evt_{uuid.uuid4().hex}",
+        event_id=_new_id("evt", rng),
         event_type="order_picked_up",
         order_id=order_id,
         occurred_at=_iso(ts),
@@ -158,7 +164,7 @@ def simulate_order(
     ts = _advance(ts, _delay(*cfg.delivery_time_secs, rng))
 
     events.append(OrderEvent(
-        event_id=f"evt_{uuid.uuid4().hex}",
+        event_id=_new_id("evt", rng),
         event_type="order_delivered",
         order_id=order_id,
         occurred_at=_iso(ts),

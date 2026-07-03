@@ -31,12 +31,15 @@ st.caption("Flagged stale only if the newest event is over 2 days old. (Operatio
 
 fresh = run_query(
     """
+    -- greatest(...,0): simulator assigns random minutes across the whole hour,
+    -- so a "live" event can land slightly ahead of wall-clock time when queried.
+    -- Clamp to 0 ("just now") instead of showing a negative minutes-ago.
     SELECT 'silver' AS layer,
-           timestampdiff(MINUTE, max(occurred_at), current_timestamp()) AS mins
+           greatest(timestampdiff(MINUTE, max(occurred_at), current_timestamp()), 0) AS mins
     FROM food_delivery.silver.order_events
     UNION ALL
     SELECT 'gold',
-           timestampdiff(MINUTE, max(occurred_at), current_timestamp())
+           greatest(timestampdiff(MINUTE, max(occurred_at), current_timestamp()), 0)
     FROM food_delivery.gold_dbt.fct_order_events
     """
 )
