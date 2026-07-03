@@ -1,4 +1,3 @@
--- Slim event log at the event grain. Append-only source of truth for order lifecycle.
 select
     event_id,
     event_type,

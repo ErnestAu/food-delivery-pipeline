@@ -45,8 +45,6 @@ models:
               arguments:
                 to: ref('dim_vendor')
                 field: vendor_id
-              config:
-                severity: warn
       - name: customer_id
         description: "FK to dim_customer."
         tests:
@@ -54,8 +52,6 @@ models:
               arguments:
                 to: ref('dim_customer')
                 field: customer_id
-              config:
-                severity: warn
       - name: driver_id
         description: "FK to dim_driver. Null for orders cancelled before pickup."
         tests:
@@ -63,8 +59,6 @@ models:
               arguments:
                 to: ref('dim_driver')
                 field: driver_id
-              config:
-                severity: warn
 
   - name: fct_order_items
     description: "Line-item-grain fact: one row per item within an order, exploded from the order_placed event's items array."
