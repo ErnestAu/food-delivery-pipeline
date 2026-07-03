@@ -2,7 +2,7 @@
 faker==26.0.0
 
 # Dashboard
-streamlit>=1.30
+streamlit>=1.40
 databricks-sql-connector>=3.0
 python-dotenv>=1.0
 pandas>=2.0
