@@ -1,2 +1,2 @@
-driver_id,name
-driv_001,Carlos
+driver_id,name,vehicle_type,city,rating
+driv_001,Carlos Yamamoto,motorbike,Tokyo,4.8

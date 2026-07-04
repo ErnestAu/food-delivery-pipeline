@@ -8,7 +8,7 @@ Hourly tick script — generates events for the current hour, **auto-backfills a
 
 - Maintains a state file at `data/.last_tick` (UTC `YYYY-MM-DDTHH`).
 - On each run, computes hours missed since last tick and backfills them in order.
-- Safety cap: max 72 hours of backfill in one run (configurable in script).
+- Safety cap: max 168 hours (1 week) of backfill in one run (configurable in script).
 - If you close your laptop at 10pm and reopen at 6am, the next cron tick (6:05am) will generate 8 hours of catch-up data + the current hour, then sync everything to S3.
 
 ### Setup

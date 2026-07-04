@@ -15,11 +15,10 @@ import argparse
 import hashlib
 import random
 import sys
-import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from simulator.config import SimConfig
+from simulator.config import CUISINE_TYPES, SimConfig
 from simulator.dims import generate_dims, write_dims
 from simulator.lifecycle import simulate_order
 from simulator.models import Customer, Driver, MenuItem, Vendor
@@ -73,7 +72,7 @@ def _load_dims_from_csv(
     ]
 
     vendors_raw = read_csv("vendors.csv")
-    cuisine_mult = {c: m for c, m in __import__("simulator.config", fromlist=["CUISINE_TYPES"]).CUISINE_TYPES}
+    cuisine_mult = {c: m for c, m in CUISINE_TYPES}
     vendors = [
         Vendor(
             vendor_id=r["vendor_id"],

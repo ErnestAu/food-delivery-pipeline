@@ -24,9 +24,10 @@ def load_daily_metrics(start: date, end: date) -> pd.DataFrame:
         SELECT *
         FROM food_delivery.gold_dbt.fct_daily_metrics
         WHERE order_date IS NOT NULL
-          AND order_date BETWEEN '{start}' AND '{end}'
+          AND order_date BETWEEN :start AND :end
         ORDER BY order_date
-        """
+        """,
+        params={"start": str(start), "end": str(end)},
     )
 
 
@@ -48,11 +49,12 @@ def load_top_vendors(start: date, end: date, limit: int = 10) -> pd.DataFrame:
         FROM food_delivery.gold_dbt.fct_orders o
         JOIN food_delivery.gold_dbt.dim_vendor v ON o.vendor_id = v.vendor_id
         WHERE o.placed_at IS NOT NULL
-          AND DATE(o.placed_at) BETWEEN '{start}' AND '{end}'
+          AND DATE(o.placed_at) BETWEEN :start AND :end
         GROUP BY v.name, v.cuisine_type, v.city
         ORDER BY gmv DESC NULLS LAST
-        LIMIT {limit}
-        """
+        LIMIT {int(limit)}
+        """,
+        params={"start": str(start), "end": str(end)},
     )
 
 
@@ -67,10 +69,11 @@ def load_cuisine_mix(start: date, end: date) -> pd.DataFrame:
         FROM food_delivery.gold_dbt.fct_orders o
         JOIN food_delivery.gold_dbt.dim_vendor v ON o.vendor_id = v.vendor_id
         WHERE o.placed_at IS NOT NULL
-          AND DATE(o.placed_at) BETWEEN '{start}' AND '{end}'
+          AND DATE(o.placed_at) BETWEEN :start AND :end
         GROUP BY v.cuisine_type
         ORDER BY gmv DESC NULLS LAST
-        """
+        """,
+        params={"start": str(start), "end": str(end)},
     )
 
 
@@ -84,9 +87,10 @@ def load_hour_heatmap(start: date, end: date) -> pd.DataFrame:
             COUNT(*) AS orders
         FROM food_delivery.gold_dbt.fct_orders
         WHERE placed_at IS NOT NULL
-          AND DATE(placed_at) BETWEEN '{start}' AND '{end}'
+          AND DATE(placed_at) BETWEEN :start AND :end
         GROUP BY DAYOFWEEK(placed_at), HOUR(placed_at)
-        """
+        """,
+        params={"start": str(start), "end": str(end)},
     )
 
 
@@ -104,10 +108,11 @@ def load_lifecycle_stages(start: date, end: date) -> pd.DataFrame:
         FROM food_delivery.gold_dbt.fct_orders
         WHERE final_status = 'delivered'
           AND placed_at IS NOT NULL
-          AND DATE(placed_at) BETWEEN '{start}' AND '{end}'
+          AND DATE(placed_at) BETWEEN :start AND :end
         GROUP BY DATE(placed_at)
         ORDER BY DATE(placed_at)
-        """
+        """,
+        params={"start": str(start), "end": str(end)},
     )
 
 
@@ -122,10 +127,11 @@ def load_cancellation_reasons(start: date, end: date) -> pd.DataFrame:
         FROM food_delivery.gold_dbt.fct_orders
         WHERE final_status = 'cancelled'
           AND placed_at IS NOT NULL
-          AND DATE(placed_at) BETWEEN '{start}' AND '{end}'
+          AND DATE(placed_at) BETWEEN :start AND :end
         GROUP BY cancelled_by, cancel_reason
         ORDER BY cnt DESC
-        """
+        """,
+        params={"start": str(start), "end": str(end)},
     )
 
 

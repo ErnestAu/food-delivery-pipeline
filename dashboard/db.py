@@ -25,12 +25,12 @@ DATABRICKS_TOKEN = get_secret("DATABRICKS_TOKEN")
 
 
 @st.cache_data(ttl=300)
-def run_query(query: str) -> pd.DataFrame:
+def run_query(query: str, params: dict | None = None) -> pd.DataFrame:
     with sql.connect(
         server_hostname=DATABRICKS_HOST,
         http_path=DATABRICKS_HTTP_PATH,
         access_token=DATABRICKS_TOKEN,
     ) as conn:
         with conn.cursor() as cursor:
-            cursor.execute(query)
+            cursor.execute(query, params)
             return cursor.fetchall_arrow().to_pandas()

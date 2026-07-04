@@ -1,3 +1,3 @@
-menu_item_id,name
-item_001,Tonkotsu Ramen
-item_002,Miso Ramen
+menu_item_id,vendor_id,name,category,price,is_available
+item_001,vend_001,Tonkotsu Ramen,Noodles,980,true
+item_002,vend_001,Miso Ramen,Noodles,900,true
