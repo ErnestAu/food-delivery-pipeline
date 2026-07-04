@@ -42,12 +42,15 @@ def _humanize(mins: float) -> str:
         parts.append(f"{minutes}m")
     return " ".join(parts) + " ago"
 
-st.title("🟢 Pipeline Health")
-st.caption("Data-engineering observability — freshness, volume, and data-quality tracking.")
-
-if st.button("🔄 Refresh"):
+st.sidebar.title("⚙️ Monitoring")
+st.sidebar.caption("Live checks against the warehouse, refreshed every 5 minutes.")
+st.sidebar.divider()
+if st.sidebar.button("🔄 Refresh data"):
     st.cache_data.clear()
     st.rerun()
+
+st.title("🟢 Pipeline Health")
+st.caption("Data-engineering observability — freshness, volume, and data-quality tracking.")
 
 # ---------- Panel 1: Freshness ----------
 st.subheader("🕒 Freshness")
@@ -108,6 +111,7 @@ st.caption(
 
 
 def volume_panel(window_hours: int) -> None:
+    window_hours = int(window_hours)  # interpolated into SQL below — keep it a literal int
     df = run_query(
         f"""
         WITH hourly AS (

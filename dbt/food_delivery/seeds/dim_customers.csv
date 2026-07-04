@@ -1,3 +1,3 @@
-customer_id,name
-cust_001,Alice
-cust_002,Bob
+customer_id,name,email,phone,city,lat,lon,registration_date
+cust_001,Alice Tanaka,alice@example.com,080-1111-2222,Tokyo,35.6762,139.6503,2025-01-15
+cust_002,Bob Suzuki,bob@example.com,080-3333-4444,Osaka,34.6937,135.5023,2025-03-02

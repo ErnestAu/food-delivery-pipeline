@@ -1,3 +1,3 @@
-vendor_id,name
-vend_001,Ramen House
-vend_002,Sushi Place
+vendor_id,name,cuisine_type,city,lat,lon,avg_prep_minutes,rating
+vend_001,Ramen House,Ramen,Tokyo,35.6895,139.6917,18,4.5
+vend_002,Sushi Place,Sushi,Tokyo,35.6580,139.7016,22,4.2

@@ -2,9 +2,10 @@
 
 > End-to-end data pipeline for a simulated food delivery business — from synthetic
 > event generation, through a medallion-architecture lakehouse on Databricks, to a
-> dbt-modeled gold layer guarded by automated data-quality tests, ending in a live
-> ops dashboard. Built as a portfolio piece drawing on my prior experience as a
-> Data Analytics Engineer at foodpanda.
+> dbt-modeled gold layer guarded by automated data-quality tests and CI, with a
+> two-page live dashboard: business KPIs plus a pipeline-health observability view.
+> Built as a portfolio piece drawing on my prior experience as a Data Analytics
+> Engineer at foodpanda.
 
 🔗 **Live dashboard:** [ernestau-food-delivery-ops.streamlit.app](https://ernestau-food-delivery-ops.streamlit.app)
 
@@ -24,27 +25,33 @@ A Python simulator pretends to be a busy food delivery service — customers pla
 orders, vendors confirm, drivers pick up, deliveries complete (or cancel). Every
 hour it generates a fresh batch of events with realistic volume variation (weekend
 peaks, growth trend, lunch/dinner rush). Those events flow through a medallion
-pipeline on Databricks — raw → cleaned → modeled — into a Kimball-style star
-schema. The gold layer is modeled in dbt with a data-quality test suite and a CI
-gate, and a Streamlit dashboard reads it through Databricks SQL.
+pipeline on Databricks — **raw → cleaned → modeled** — into a Kimball-style star
+schema.
 
-Cadence: the producer runs hourly at `:05`, the Databricks pipeline at `:15` — new
-events are queryable within ~15 minutes.
+The **gold layer is modeled in dbt** and runs as a task inside the scheduled
+Databricks job itself: every hourly run executes the SDP (bronze/silver) pipeline,
+then `dbt run` + `dbt test` immediately after. The live Streamlit dashboard reads
+the dbt-built gold directly.
 
-Layer split: bronze and silver are PySpark (Lakeflow SDP, streaming-native); gold is
-dbt (SQL). Neither tool calls the other — they share Delta tables through Unity Catalog.
+**Cadence:** producer runs hourly at `:05`, the Databricks job at `:15` — new events
+are queryable within ~15 minutes.
+
+**Layer ownership:** bronze + silver are PySpark (Lakeflow SDP, streaming-native);
+**gold is dbt (SQL)**. Unity Catalog is the shared seam — neither tool calls the
+other; they agree on Delta table names.
 
 ---
 
-## Data Quality & Testing
+## 🧪 Data Quality & Testing
 
-The gold layer is modeled in dbt over the PySpark bronze/silver Delta tables, with
-data quality enforced as executable contracts and a CI gate that blocks bad changes
-from reaching `main`.
+The gold layer is modeled in **dbt** over the PySpark bronze/silver Delta tables,
+with data quality enforced as **executable contracts** and a **CI gate** that
+blocks bad changes from reaching `main`.
 
-Bronze/silver cleaning is imperative work that suits PySpark; gold is declarative
-aggregation that reads cleanly as SQL. Moving gold to dbt also makes tests, lineage,
-and CI first-class — which turns silent data errors into loud, blocking failures.
+**Why dbt over the gold layer?** Bronze/silver cleaning is imperative work that
+suits PySpark; gold is declarative aggregation/joins that read cleanly as SQL. More
+importantly, dbt makes tests, lineage, and CI first-class — turning silent data
+errors *loud*.
 
 ### Tests as contracts
 
@@ -52,39 +59,58 @@ and CI first-class — which turns silent data errors into loud, blocking failur
 |---|---|---|
 | `unique`, `not_null` | `event_id` (silver source) | duplicate / missing event IDs |
 | `accepted_values` | `event_type` | unannounced / schema-drift event types |
-| `relationships` | fact → dim FKs | orphaned references (severity: `warn`) |
+| `relationships` | fact → dim FKs | orphaned references |
 | `dbt_utils.accepted_range` | `gmv >= 0` | negative revenue |
 | `dbt_utils.expression_is_true` | order lifecycle | out-of-order timestamps |
 
-Severity is tuned per test: referential-integrity checks `warn`; data-correctness
-checks `error`, so they block downstream models under `dbt build` (Write-Audit-Publish).
+Severity is **target-aware**: `error` in CI (a failing test blocks the merge) and
+`warn` in production (known issues surface in run logs and on the health dashboard
+without breaking the hourly build). Under `dbt build`, `error`-severity failures
+also skip downstream models — Write-Audit-Publish fault isolation.
 
-### Fault injection
+### Proving the tests work — fault injection
 
-The simulator has an off-by-default `--corrupt-rate` flag that injects realistic
+The simulator has an **off-by-default `--corrupt-rate`** flag that injects realistic
 defects (negative GMV, orphaned FKs, duplicate/null event IDs, schema-drift event
-types, inverted timestamps), so the tests can be shown going red on demand. The live
+types, inverted timestamps), so the tests can be shown going red on demand. The real
 24/7 feed stays clean; CI uses a deterministic seed fixture instead of random chaos.
 
 ### CI gate
 
 Every pull request runs [`.github/workflows/dbt_ci.yml`](.github/workflows/dbt_ci.yml):
-it loads deterministic seed fixtures into an isolated schema and runs
+it loads deterministic **seed fixtures** into an isolated schema and runs
 `dbt seed → run → test` against the real Databricks engine. A failing test blocks the
-merge. `main` is branch-protected to require this check.
+merge. `main` is branch-protected to require this check (admins included).
 
-### Bugs this caught
+### Bugs this actually caught
 
-The suite surfaced two real, pre-existing bugs — neither planted:
-
+The suite surfaced **two real, pre-existing bugs** — neither planted:
 - **Orphaned dimension keys** — non-deterministic (`uuid4`) dim ID generation produced
   facts referencing dimension rows that no longer existed across pipeline runs.
-- **Negative GMV** — discounts applied to orders whose subtotal was smaller, driving
-  GMV below zero. A negative integer is valid to Spark, so nothing upstream flagged it;
-  `accepted_range` caught it immediately.
+- **Negative GMV** — discounts (¥500) applied to orders whose subtotal was smaller,
+  driving GMV below zero. Invisible to Spark (a negative int is valid); caught instantly
+  by `accepted_range`.
 
-The dbt gold models, tests, and CI run side-by-side with the legacy PySpark gold.
-Cutting the scheduled pipeline and dashboard fully over to dbt gold is the next step.
+A related idempotency bug was found and **fixed**: event/order IDs were generated with
+raw `uuid4`, so re-running a backfill produced structurally-duplicate events with fresh
+IDs that dedup could never catch. IDs are now derived from the per-hour seeded RNG —
+re-running the same hour reproduces identical events, and silver's
+`dropDuplicates(event_id)` collapses true replays to zero net rows.
+
+---
+
+## 🩺 Observability
+
+Two layers, deliberately different:
+
+- **Alert on the unexpected** — a Databricks **SQL Alert** fires if the newest event
+  is more than 3 hours old (a stalled pipeline fails no tests — liveness needs its
+  own check), and the Databricks job sends **failure-notification emails**.
+- **Dashboard the known** — the public **Pipeline Health** page tracks freshness per
+  layer (plus last pipeline run from Delta commit history), orders-per-hour against a
+  trailing 7-day same-hour baseline (with a selectable window), counts of known
+  data-quality issues, and a bronze → silver → gold row-count funnel. Known issues are
+  tracked there rather than alerted — paging on a known, unfixed issue is just noise.
 
 ---
 
@@ -122,20 +148,21 @@ replacing it. See [`airflow/README.md`](airflow/README.md).
 |---|---|
 | Producer | Python 3.11, [Faker](https://faker.readthedocs.io), cron, shell |
 | Containerization | Docker (simulator image + `compose.yaml`) |
-| Orchestration | macOS cron + Databricks scheduled job (live); Airflow (Astro CLI) on demand |
+| Orchestration | macOS cron (producer) + a scheduled Databricks job running SDP **then a dbt task**; Airflow (Astro CLI) on demand |
 | Storage | AWS S3 (raw JSONL), Delta Lake (bronze/silver/gold) |
 | Ingestion | [Auto Loader](https://docs.databricks.com/aws/en/ingestion/cloud-files/) (`cloudFiles`) |
 | Transforms (bronze/silver) | [Lakeflow Spark Declarative Pipelines](https://docs.databricks.com/aws/en/ldp/) (PySpark) |
-| Transforms (gold) | dbt (SQL models) + [dbt_utils](https://github.com/dbt-labs/dbt-utils), dbt-databricks adapter |
-| Data quality / CI | dbt tests (generic + singular), GitHub Actions, branch protection |
-| Governance | Unity Catalog (`bronze`, `silver`, `gold` / `gold_dbt`) |
-| Dashboard | Streamlit, [databricks-sql-connector](https://github.com/databricks/databricks-sql-python), Plotly |
+| **Transforms (gold)** | **dbt (SQL models) + [dbt_utils](https://github.com/dbt-labs/dbt-utils), dbt-databricks adapter — run as a Databricks job task** |
+| **Data quality / CI** | **dbt tests (generic + package), GitHub Actions, branch protection** |
+| **Observability** | **Databricks SQL Alerts, job failure notifications, public Pipeline Health page** |
+| Governance | Unity Catalog (`bronze`, `silver`, `gold`, `gold_dbt`) |
+| Dashboard | Streamlit (multipage), [databricks-sql-connector](https://github.com/databricks/databricks-sql-python), Plotly |
 
 ---
 
 ## Data model
 
-Kimball star schema. Gold is modeled in dbt (SQL); bronze/silver remain PySpark.
+Kimball star schema. **Gold modeled in dbt (SQL);** bronze/silver remain PySpark.
 
 **Facts** (different grains)
 - `fct_orders` — one row per order; lifecycle timestamps, measures, FKs, derived `final_status`.
@@ -153,8 +180,11 @@ Kimball star schema. Gold is modeled in dbt (SQL); bronze/silver remain PySpark.
 | Decision | Picked | Why |
 |---|---|---|
 | **Gold transform engine** | dbt (SQL), not more PySpark | Gold is declarative aggregation; dbt unlocks tests, lineage, and CI as first-class. |
+| **Where dbt runs in prod** | A dbt task inside the existing Databricks job, after SDP | Gold refreshes the moment silver lands — one job, one dependency chain, no second scheduler. |
 | **CI engine** | Real Databricks + seed fixtures, not DuckDB | Models use Spark-specific SQL (`LATERAL VIEW explode`, struct access); determinism comes from fixtures, not the engine. |
-| **Test severity** | `warn` for FK integrity, `error` for correctness | Known/tolerable issues surface without blocking; must-never-happen issues quarantine downstream. |
+| **Test severity** | `error` in CI, `warn` in production | The gate keeps its teeth on PRs; known real-data issues surface without breaking the hourly build. |
+| **Cutover strategy** | Repoint the dashboard to `gold_dbt`; keep PySpark gold running as a live fallback | Zero-downtime, instantly reversible; the legacy gold is retired only after the dbt gold proves itself in production. |
+| **Alerting philosophy** | Alert on freshness/volume anomalies; dashboard the known issues | Paging on known, unfixed data debt trains you to ignore alerts. |
 | **Ingestion** | Batch (Auto Loader), not Kafka | Hourly cadence suits an ops dashboard; Kafka would be over-engineering. |
 | **Dim semantics** | Type 1, not SCD2 | Simulator doesn't mutate dims yet, so SCD2 would add complexity with zero historical rows. |
 
@@ -179,6 +209,11 @@ set -a && source ../../.env && set +a     # supply Databricks creds via env vars
 dbt deps
 dbt build                                  # run models + tests in DAG order
 dbt docs generate && dbt docs serve        # browse the lineage graph
+```
+
+### Dashboard (both pages)
+```bash
+streamlit run dashboard/app.py             # Pipeline Health + Food Delivery Ops
 ```
 
 ### Airflow (local orchestration)
@@ -208,7 +243,11 @@ food-delivery-pipeline/
 ├── databricks/food-delivery-etl/transformations/   # PySpark bronze/silver (+ legacy gold)
 ├── airflow/                            # Astro CLI project — orchestration DAG
 ├── scripts/live_tick.sh               # hourly cron driver (simulator + S3 sync)
-├── dashboard/app.py                   # Streamlit ops dashboard
+├── dashboard/                          # Streamlit multipage app
+│   ├── app.py                          # entrypoint / page router
+│   ├── db.py                           # shared Databricks SQL connection
+│   ├── pipeline_health.py              # observability page (default landing)
+│   └── food_delivery_ops.py            # business KPI page
 └── docs/ , data/samples/
 ```
 
@@ -216,19 +255,21 @@ food-delivery-pipeline/
 
 ## Roadmap
 
-**Done — containerization & orchestration:** Docker, Airflow DAG, Streamlit keep-alive
+**✅ v1 — containerization & orchestration:** Docker, Airflow DAG, Streamlit keep-alive
 (GitHub Actions + Playwright headless session — a plain HTTP uptime ping couldn't wake Streamlit).
 
-**Done — data quality & testing:** gold ported to dbt SQL models, dbt test suite
-(generic + dbt_utils + singular), simulator `--corrupt-rate` fault injection, GitHub
-Actions CI gate with seed fixtures + branch protection.
+**✅ v2 — data quality, testing & observability:** gold ported to dbt and running inside
+the scheduled Databricks job; dbt test suite (generic + dbt_utils) with target-aware
+severity; simulator `--corrupt-rate` fault injection; GitHub Actions CI gate with seed
+fixtures + branch protection; dashboard cut over to the dbt-built gold; freshness
+alerting + a public Pipeline Health observability page; deterministic event/order IDs
+for idempotent reprocessing.
 
-**Next — production cut-over:** run `dbt build` in the scheduled pipeline after silver;
-retire the PySpark gold; point the dashboard at the dbt gold; fix the two bugs the
-tests surfaced (deterministic dim IDs, discount cap).
+**🔜 v2 wrap-up:** retire the legacy PySpark gold once the dbt gold has served the
+dashboard reliably; fix the two known data bugs (deterministic dim IDs, discount cap).
 
-**Later — infrastructure & a realistic source:**
+**📌 v3 — infra & realistic source:**
 - **Terraform** — S3, IAM, Databricks resources as code.
-- **Postgres OLTP source** — land orders transactionally, then batch-extract (more realistic than writing JSONL directly).
-- **GitHub Actions hourly producer** — move the job off laptop cron into the cloud with failure alerting.
+- **Postgres OLTP source + CDC** — land orders transactionally, then extract incrementally (a more realistic source than writing JSONL directly).
+- **Cloud-scheduled producer** — move the hourly job off laptop cron (GitHub Actions cron) with failure alerting.
 - **SCD2 dims**, **Databricks Asset Bundles**, **Kafka ingestion** for real-time.

@@ -44,8 +44,10 @@ def corrupt_events(events: list[OrderEvent], rate: float, rng: random.Random) ->
         by_order[evt.order_id].append(evt)
 
     order_ids = list(by_order.keys())
-    n_corrupt = int(len(order_ids) * rate)
-    targets = rng.sample(order_ids, n_corrupt)
+    # ceil-ish floor guard: a nonzero rate should always corrupt at least one order,
+    # otherwise small batches (e.g. 4 orders at 0.2) silently inject nothing
+    n_corrupt = max(1, int(len(order_ids) * rate))
+    targets = rng.sample(order_ids, min(n_corrupt, len(order_ids)))
 
     for order_id in targets:
         group = by_order[order_id]
@@ -59,8 +61,9 @@ def corrupt_events(events: list[OrderEvent], rate: float, rng: random.Random) ->
 def _apply_defect(defect: str, group: list[OrderEvent], all_events: list[OrderEvent], rng: random.Random) -> None:
     if defect == "duplicate_event_id":
         victim = rng.choice(group)
-        donor = rng.choice(all_events)
-        victim.event_id = donor.event_id
+        donors = [e for e in all_events if e is not victim]
+        if donors:
+            victim.event_id = rng.choice(donors).event_id
 
     elif defect == "null_fk":
         victim = rng.choice(group)
