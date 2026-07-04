@@ -91,7 +91,7 @@ def _freshness_metric(col, label: str, ts) -> None:
 
 c1, c2, c3 = st.columns(3)
 _freshness_metric(
-    c1, "Last refresh",
+    c1, "Pipeline last ran",
     refresh["last_refresh_at"].iloc[0] if not refresh.empty else None,
 )
 _freshness_metric(c2, "Silver — last order event", fresh.iloc[0]["last_event_at"])
