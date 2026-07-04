@@ -7,6 +7,9 @@ Answers the three questions an on-call DE asks:
 """
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
+import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
@@ -15,58 +18,91 @@ from db import run_query
 
 FRESHNESS_STALE_MINUTES = 60 * 24 * 2  # 2 days — only flag genuinely stale data
 
+
+def _as_utc(ts) -> datetime:
+    """Normalize a query result timestamp (naive or tz-aware) to an aware UTC datetime."""
+    ts = pd.Timestamp(ts)
+    ts = ts.tz_localize("UTC") if ts.tzinfo is None else ts.tz_convert("UTC")
+    return ts.to_pydatetime()
+
+
+def _humanize(mins: float) -> str:
+    """Minutes -> 'just now' / '1h 10m ago' / '2d 3h ago'."""
+    mins = max(0, int(mins))
+    if mins < 1:
+        return "just now"
+    days, rem = divmod(mins, 60 * 24)
+    hours, minutes = divmod(rem, 60)
+    parts = []
+    if days:
+        parts.append(f"{days}d")
+    if hours:
+        parts.append(f"{hours}h")
+    if minutes or not parts:
+        parts.append(f"{minutes}m")
+    return " ".join(parts) + " ago"
+
 st.title("🟢 Pipeline Health")
-st.caption(
-    "Data-engineering observability — freshness, volume, and data-quality tracking "
-    "across the medallion layers. Cache 5 min."
-)
+st.caption("Data-engineering observability — freshness, volume, and data-quality tracking.")
 
 if st.button("🔄 Refresh"):
     st.cache_data.clear()
     st.rerun()
 
 # ---------- Panel 1: Freshness ----------
-st.subheader("🕒 Freshness — minutes since the newest event")
-st.caption("Flagged stale only if the newest event is over 2 days old. (Operational paging is handled separately by a Databricks SQL Alert.)")
+st.subheader("🕒 Freshness")
+st.caption("How recently the newest order event landed in each layer.")
 
 fresh = run_query(
     """
-    -- greatest(...,0): simulator assigns random minutes across the whole hour,
-    -- so a "live" event can land slightly ahead of wall-clock time when queried.
-    -- Clamp to 0 ("just now") instead of showing a negative minutes-ago.
-    SELECT 'silver' AS layer,
-           greatest(timestampdiff(MINUTE, max(occurred_at), current_timestamp()), 0) AS mins
+    SELECT 'silver' AS layer, max(occurred_at) AS last_event_at
     FROM food_delivery.silver.order_events
     UNION ALL
-    SELECT 'gold',
-           greatest(timestampdiff(MINUTE, max(occurred_at), current_timestamp()), 0)
+    SELECT 'gold', max(occurred_at)
     FROM food_delivery.gold_dbt.fct_order_events
     """
 )
 order = {"silver": 0, "gold": 1}
 fresh = fresh.sort_values("layer", key=lambda s: s.map(order))
 
-fcols = st.columns(len(fresh))
-for col, (_, row) in zip(fcols, fresh.iterrows()):
-    mins = row["mins"]
-    label = f"{row['layer'].title()} — last event"
-    if mins is None:
+refresh = run_query(
+    """
+    SELECT timestamp AS last_refresh_at
+    FROM (DESCRIBE HISTORY food_delivery.silver.order_events)
+    ORDER BY version DESC
+    LIMIT 1
+    """
+)
+
+
+def _freshness_metric(col, label: str, ts) -> None:
+    if pd.isna(ts):
         col.metric(label, "no data")
-    else:
-        stale = int(mins) > FRESHNESS_STALE_MINUTES
-        col.metric(
-            label,
-            f"{int(mins)} min ago",
-            delta="⚠️ stale" if stale else "✅ fresh",
-            delta_color="inverse" if stale else "normal",
-        )
+        return
+    mins_ago = (datetime.now(timezone.utc) - _as_utc(ts)).total_seconds() / 60
+    stale = mins_ago > FRESHNESS_STALE_MINUTES
+    col.metric(
+        label,
+        _humanize(mins_ago),
+        delta="⚠️ stale" if stale else "✅ fresh",
+        delta_color="inverse" if stale else "normal",
+    )
+
+
+c1, c2, c3 = st.columns(3)
+_freshness_metric(
+    c1, "Last refresh",
+    refresh["last_refresh_at"].iloc[0] if not refresh.empty else None,
+)
+_freshness_metric(c2, "Silver — last order event", fresh.iloc[0]["last_event_at"])
+_freshness_metric(c3, "Gold — last order event", fresh.iloc[1]["last_event_at"])
 
 st.divider()
 
 # ---------- Panel 2: Volume trend (vs 7-day-average baseline) ----------
 st.subheader("📦 Volume — orders per hour vs 7-day average")
 st.caption(
-    "Bars = actual orders per hour (anchored to the newest event, so pipeline lag never shows a false gap). "
+    "Bars = actual orders per hour. "
     "Dotted line = average for that hour-of-day over the trailing 7 days — bars dropping well below it flag an anomaly."
 )
 
@@ -130,11 +166,8 @@ volume_panel(window_options[choice or "72h"])
 st.divider()
 
 # ---------- Panel 3: Data-quality tracker ----------
-st.subheader("🧪 Data quality — known issues we're tracking")
-st.caption(
-    "These run as `warn`-severity dbt tests: surfaced here, **not** alerted "
-    "(they're known/unfixed, so an alert would be constant noise). Tracked to watch the trend."
-)
+st.subheader("🧪 Data quality")
+st.caption("Records flagged by our automated data-quality checks, tracked over time.")
 
 q = run_query(
     """
@@ -152,13 +185,13 @@ q = run_query(
 qcols = st.columns(3)
 qcols[0].metric("Negative GMV orders", f"{int(q['negative_gmv']):,}")
 qcols[1].metric("Unknown event types", f"{int(q['unknown_event_types']):,}")
-qcols[2].metric("Orphan vendor FKs", f"{int(q['orphan_vendors']):,}")
+qcols[2].metric("Orphaned vendor IDs", f"{int(q['orphan_vendors']):,}")
 
 st.divider()
 
-# ---------- Panel 4: Medallion funnel ----------
-st.subheader("🔻 Medallion funnel — event row counts by layer")
-st.caption("Large drops between layers can signal silent loss (e.g. watermark drops in silver).")
+# ---------- Panel 4: Row counts by layer ----------
+st.subheader("🔻 Row counts by layer")
+st.caption("Event counts as data flows bronze → silver → gold. Large drops between layers can indicate data loss.")
 
 funnel = run_query(
     """
