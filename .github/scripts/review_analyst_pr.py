@@ -21,8 +21,17 @@ RESPONSE_SCHEMA = REPO_ROOT / "demo" / "review_response_schema.json"
 RULES_PATH = REPO_ROOT / "AGENTS.md"
 CONTEXT_PATHS = [
     "dbt/food_delivery/models/facts/fct_orders.sql",
+    "dbt/food_delivery/models/facts/schema.yml",
     "dbt/food_delivery/models/dims/dim_vendor.sql",
 ]
+FACTS_CONTRACT_PATH = "dbt/food_delivery/models/facts/schema.yml"
+DEMO_MODEL_PATH = "dbt/food_delivery/models/analyst_pr/fct_vendor_daily_performance.sql"
+BROKEN_DEMO_JOIN = "    on orders.vendor_id = vendors.city\n"
+FIXED_DEMO_JOIN = "    on orders.vendor_id = vendors.vendor_id\n"
+
+
+class OpenAIBillingNotActive(RuntimeError):
+    """The configured API key is valid, but its account cannot make API calls."""
 
 
 def gh_json(*arguments: str) -> dict[str, Any]:
@@ -95,6 +104,14 @@ def call_openai(prompt: str) -> dict[str, str]:
             api_response = json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as error:
         detail = error.read().decode("utf-8", errors="replace")
+        try:
+            error_code = json.loads(detail).get("error", {}).get("code")
+        except json.JSONDecodeError:
+            error_code = None
+        if error_code == "billing_not_active":
+            raise OpenAIBillingNotActive(
+                "OpenAI API billing is inactive; using only the constrained local fallback."
+            ) from error
         raise RuntimeError(f"OpenAI Responses API request failed: {detail}") from error
 
     output_text = api_response.get("output_text", "")
@@ -150,17 +167,79 @@ def validate_review(review: dict[str, str]) -> None:
         raise RuntimeError("Only a high-confidence suggestion may contain proposed SQL.")
 
 
-def review_body(review: dict[str, str], diff: str | None) -> str:
+def deterministic_billing_fallback(
+    *,
+    model_path: str,
+    candidate_sql: str,
+    analyst_contract: str,
+    facts_contract: str,
+    failure_output: str,
+) -> dict[str, str]:
+    """Return a proposal only for this explicitly evidenced mechanical demo defect.
+
+    This does not attempt to imitate general SQL reasoning while the model API is
+    unavailable. Every condition below is required before a one-line proposal is
+    returned; otherwise the result remains a warning for human review.
+    """
+    evidence_matches = (
+        model_path == DEMO_MODEL_PATH
+        and "not_null_fct_vendor_daily_performance_vendor_name" in failure_output
+        and "Every delivered order must resolve to a vendor." in analyst_contract
+        and "to: ref('dim_vendor')" in facts_contract
+        and "field: vendor_id" in facts_contract
+        and candidate_sql.count("left join {{ ref('dim_vendor') }} as vendors") == 1
+        and candidate_sql.count(BROKEN_DEMO_JOIN) == 1
+    )
+    if not evidence_matches:
+        return {
+            "decision": "warn_for_review",
+            "severity": "warning",
+            "summary": "The model-backed review is unavailable, and the fallback cannot prove a safe SQL correction.",
+            "rationale": (
+                "The OpenAI Responses API reported `billing_not_active`. The constrained fallback did not find "
+                "the complete evidence required for the known mechanical join correction, so it will not guess "
+                "at the analyst's intent."
+            ),
+            "proposed_sql": "",
+            "clarifying_question": (
+                "Can API billing be restored and the review rerun, or can a human reviewer confirm the intended "
+                "join key before this model is changed?"
+            ),
+        }
+
+    return {
+        "decision": "suggest_fix",
+        "severity": "high",
+        "summary": "`vendor_name` is null because delivered orders are joined to the vendor dimension on `city` instead of its declared vendor key.",
+        "rationale": (
+            "The failed `not_null_fct_vendor_daily_performance_vendor_name` test shows unresolved vendor names. "
+            "The analyst contract requires every delivered order to resolve to a vendor, and the trusted "
+            "`fct_orders` contract declares `vendor_id` as a relationship to `dim_vendor.vendor_id`. The exact "
+            "candidate join compares `orders.vendor_id` with `vendors.city`; replacing only that right-hand field "
+            "is the smallest correction supported by those contracts."
+        ),
+        "proposed_sql": candidate_sql.replace(BROKEN_DEMO_JOIN, FIXED_DEMO_JOIN),
+        "clarifying_question": "",
+    }
+
+
+def review_body(review: dict[str, str], diff: str | None, review_mode: str | None = None) -> str:
     body = [
         "## dbt PR review agent",
-        f"**Severity:** `{review['severity'].upper()}`",
-        f"**Decision:** `{review['decision']}`",
-        "",
-        review["summary"],
-        "",
-        "**Evidence and rationale**",
-        review["rationale"],
     ]
+    if review_mode:
+        body.extend([f"_Review mode: {review_mode}_", ""])
+    body.extend(
+        [
+            f"**Severity:** `{review['severity'].upper()}`",
+            f"**Decision:** `{review['decision']}`",
+            "",
+            review["summary"],
+            "",
+            "**Evidence and rationale**",
+            review["rationale"],
+        ]
+    )
     if review["decision"] == "warn_for_review":
         body.extend(["", "**Question for the analyst**", review["clarifying_question"]])
     if diff:
@@ -206,9 +285,8 @@ def main() -> int:
     model_path = os.environ["REVIEW_MODEL_PATH"]
     candidate_sql = fetch_file(repo, model_path, head_sha)
     contract = fetch_file(repo, os.environ["REVIEW_CONTRACT_PATH"], head_sha)
-    context = "\n\n".join(
-        f"--- {path} ---\n{fetch_file(repo, path, base_sha)}" for path in CONTEXT_PATHS
-    )
+    trusted_context = {path: fetch_file(repo, path, base_sha) for path in CONTEXT_PATHS}
+    context = "\n\n".join(f"--- {path} ---\n{content}" for path, content in trusted_context.items())
     prompt = f"""{RULES_PATH.read_text()}
 
 Review only this explicitly named analyst SQL file: {model_path}
@@ -228,7 +306,18 @@ Return one strict JSON response.
 - Use pass and severity info only if no concern remains.
 - For suggest_fix, provide the complete corrected analyst SQL file. Do not modify or propose changes to tests, seeds, profiles, sources, data, or established core models.
 """
-    review = call_openai(prompt)
+    review_mode = "OpenAI model review"
+    try:
+        review = call_openai(prompt)
+    except OpenAIBillingNotActive:
+        review = deterministic_billing_fallback(
+            model_path=model_path,
+            candidate_sql=candidate_sql,
+            analyst_contract=contract,
+            facts_contract=trusted_context[FACTS_CONTRACT_PATH],
+            failure_output=result["failure_output"],
+        )
+        review_mode = "deterministic safety fallback (OpenAI API billing inactive)"
     validate_review(review)
 
     proposed_sql = validate_proposal(review["proposed_sql"]) if review["decision"] == "suggest_fix" else ""
@@ -250,7 +339,7 @@ Return one strict JSON response.
         pr_number=os.environ["PR_NUMBER"],
         head_sha=head_sha,
         token=os.environ["GITHUB_TOKEN"],
-        body=review_body(review, diff or None),
+        body=review_body(review, diff or None, review_mode),
         model_path=model_path,
         hunk=hunk,
     )
@@ -268,6 +357,34 @@ def self_test() -> int:
     proposed = "select *\nfrom orders\nwhere vendor_id = vendors.vendor_id\n"
     assert suggestion_hunk(original, proposed) == (3, 3, "where vendor_id = vendors.vendor_id\n")
     validate_proposal("select 1\n")
+
+    candidate = (
+        "with delivered_orders as (select 1 as vendor_id)\n"
+        "select vendors.name as vendor_name\n"
+        "from delivered_orders as orders\n"
+        "left join {{ ref('dim_vendor') }} as vendors\n"
+        "    on orders.vendor_id = vendors.city\n"
+    )
+    fallback = deterministic_billing_fallback(
+        model_path=DEMO_MODEL_PATH,
+        candidate_sql=candidate,
+        analyst_contract="Every delivered order must resolve to a vendor.",
+        facts_contract="to: ref('dim_vendor')\nfield: vendor_id\n",
+        failure_output="Failure in test not_null_fct_vendor_daily_performance_vendor_name",
+    )
+    assert fallback["decision"] == "suggest_fix"
+    assert fallback["proposed_sql"] == candidate.replace(BROKEN_DEMO_JOIN, FIXED_DEMO_JOIN)
+    assert suggestion_hunk(candidate, fallback["proposed_sql"]) == (5, 5, FIXED_DEMO_JOIN)
+
+    guarded = deterministic_billing_fallback(
+        model_path=DEMO_MODEL_PATH,
+        candidate_sql=candidate,
+        analyst_contract="Every delivered order must resolve to a vendor.",
+        facts_contract="to: ref('dim_vendor')\nfield: vendor_id\n",
+        failure_output="A different test failed",
+    )
+    assert guarded["decision"] == "warn_for_review"
+    assert not guarded["proposed_sql"]
     print("review_analyst_pr.py self-test passed.")
     return 0
 
