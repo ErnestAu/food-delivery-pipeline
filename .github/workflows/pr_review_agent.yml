@@ -24,7 +24,6 @@ jobs:
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     env:
-      ANALYST_CHECK_RESULT_PATH: ${{ runner.temp }}/analyst-check-result.json
       GITHUB_TOKEN: ${{ github.token }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       OPENAI_REVIEW_MODEL: ${{ vars.OPENAI_REVIEW_MODEL }}
@@ -44,8 +43,12 @@ jobs:
 
       - name: Wait for the DuckDB test verdict
         id: analyst-check
-        run: python .github/scripts/wait_for_analyst_pr_check.py
+        run: |
+          export ANALYST_CHECK_RESULT_PATH="$RUNNER_TEMP/analyst-check-result.json"
+          python .github/scripts/wait_for_analyst_pr_check.py
 
       - name: Review failed analyst SQL and post a proposal
         if: steps.analyst-check.outputs.conclusion == 'failure'
-        run: python .github/scripts/review_analyst_pr.py
+        run: |
+          export ANALYST_CHECK_RESULT_PATH="$RUNNER_TEMP/analyst-check-result.json"
+          python .github/scripts/review_analyst_pr.py
