@@ -105,17 +105,9 @@ files, and never commits. The base branch supplies the reviewer code and
 `AGENTS.md`; the PR SQL and dbt log are treated only as untrusted review
 evidence.
 
-Before using it, create a Gemini API key in [Google AI Studio](https://aistudio.google.com/app/apikey),
-then add it as `GEMINI_API_KEY` under **Settings → Secrets and variables →
-Actions → New repository secret**. Optionally add a `GEMINI_REVIEW_MODEL`
-repository variable; otherwise the workflow uses `gemini-2.5-flash`. Its free
-tier is sufficient for this demo, subject to Gemini's rate limits and free-tier
-data terms.
-
-If Gemini returns only a temporary availability or free-tier-rate-limit response,
-the workflow clearly labels a constrained deterministic fallback. That fallback
-proposes the one-line demo correction only when the failed dbt test and declared
-contracts prove it; otherwise it posts a warning with no SQL patch.
+Before using it, add `OPENAI_API_KEY` under **Settings → Secrets and variables
+→ Actions → New repository secret**. Optionally add an `OPENAI_REVIEW_MODEL`
+repository variable; otherwise the workflow uses `gpt-4.1-mini`.
 
 After you push this platform update to `codex/duckdb-agent-demo`, push any new
 commit to the analyst PR branch to trigger the review agent. The agent comment

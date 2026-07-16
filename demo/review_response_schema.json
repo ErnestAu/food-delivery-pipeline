@@ -17,7 +17,7 @@
     },
     "proposed_sql": {
       "type": "string",
-      "description": "Complete raw proposed model SQL for suggest_fix, with no Markdown fence or explanatory prose; an empty string otherwise."
+      "description": "Complete proposed model SQL for suggest_fix; an empty string otherwise."
     },
     "clarifying_question": {
       "type": "string",
