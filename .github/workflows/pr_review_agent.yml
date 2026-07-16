@@ -34,12 +34,10 @@ jobs:
       REVIEW_CONTRACT_PATH: dbt/food_delivery/models/analyst_pr/schema.yml
       REVIEW_MODEL_PATH: dbt/food_delivery/models/analyst_pr/fct_vendor_daily_performance.sql
     steps:
-      # pull_request_target uses the base branch's trusted workflow. Never
-      # check out the analyst branch; its SQL is fetched later only as text.
+      # pull_request_target runs from the trusted default branch. Never check
+      # out the analyst branch; its SQL is fetched later only as text.
       - name: Check out trusted reviewer code
         uses: actions/checkout@v5
-        with:
-          ref: ${{ github.event.pull_request.base.sha }}
 
       - name: Wait for the DuckDB test verdict
         id: analyst-check
