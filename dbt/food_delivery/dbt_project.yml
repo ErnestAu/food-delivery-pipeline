@@ -24,7 +24,14 @@ clean-targets:         # directories to be removed by `dbt clean`
 
 
 # Data-quality test severity, per target:
-#   - CI (clean fixture): error — a failing test blocks the merge.
+#   - CI and local demo (clean fixtures): error — a failing test blocks the loop.
 #   - dev / prod (real data): warn — surface known issues without breaking the pipeline.
 data_tests:
-  +severity: "{{ 'error' if target.name == 'ci' else 'warn' }}"
+  +severity: "{{ 'error' if target.name in ['ci', 'demo'] else 'warn' }}"
+
+# Deliberately failing analyst PR scenarios are part of the local DuckDB demo
+# only. They are excluded from established Databricks dev/CI targets.
+models:
+  food_delivery:
+    analyst_pr:
+      +enabled: "{{ target.name == 'demo' }}"

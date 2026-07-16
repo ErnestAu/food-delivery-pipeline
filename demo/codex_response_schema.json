@@ -1,0 +1,15 @@
+{
+  "type": "object",
+  "properties": {
+    "sql": {
+      "type": "string",
+      "description": "The complete corrected contents of the target dbt model SQL file."
+    },
+    "rationale": {
+      "type": "string",
+      "description": "A concise explanation of the one logical correction."
+    }
+  },
+  "required": ["sql", "rationale"],
+  "additionalProperties": false
+}

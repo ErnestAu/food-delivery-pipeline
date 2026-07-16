@@ -3,8 +3,7 @@ version: 2
 sources:
   - name: bronze
     description: "Raw ingested data landed by the PySpark/Auto Loader pipeline. Dimensions are sourced directly from bronze."
-    database: food_delivery
-    schema: "{{ 'gold_dbt_ci' if target.name == 'ci' else 'bronze' }}"
+    schema: "{{ 'gold_dbt_ci' if target.name == 'ci' else 'demo' if target.name == 'demo' else 'bronze' }}"
     tables:
       - name: dim_customers
         description: "Customer dimension; one row per customer."
@@ -17,8 +16,7 @@ sources:
 
   - name: silver
     description: "Cleaned, deduplicated, watermarked order-event stream from the PySpark silver layer."
-    database: food_delivery
-    schema: "{{ 'gold_dbt_ci' if target.name == 'ci' else 'silver' }}"
+    schema: "{{ 'gold_dbt_ci' if target.name == 'ci' else 'demo' if target.name == 'demo' else 'silver' }}"
     tables:
       - name: order_events
         description: "One row per order lifecycle event; append-only, deduplicated on event_id."

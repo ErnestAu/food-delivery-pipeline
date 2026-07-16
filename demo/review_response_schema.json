@@ -1,0 +1,25 @@
+{
+  "type": "object",
+  "properties": {
+    "decision": {
+      "type": "string",
+      "enum": ["suggest_fix", "warn_for_review", "pass"]
+    },
+    "summary": {
+      "type": "string"
+    },
+    "rationale": {
+      "type": "string"
+    },
+    "proposed_sql": {
+      "type": "string",
+      "description": "Complete proposed model SQL for suggest_fix; an empty string otherwise."
+    },
+    "clarifying_question": {
+      "type": "string",
+      "description": "A question for the analyst when the decision is warn_for_review; an empty string otherwise."
+    }
+  },
+  "required": ["decision", "summary", "rationale", "proposed_sql", "clarifying_question"],
+  "additionalProperties": false
+}

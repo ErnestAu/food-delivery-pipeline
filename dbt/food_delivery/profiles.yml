@@ -17,3 +17,8 @@ food_delivery:
       schema: gold_dbt_ci
       threads: 4
       token: "{{ env_var('DATABRICKS_TOKEN') }}"
+    demo:
+      type: duckdb
+      path: data/demo/food_delivery.duckdb
+      schema: demo
+      threads: 4
