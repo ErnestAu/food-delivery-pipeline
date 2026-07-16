@@ -1,4 +1,4 @@
-# dbt model-fixer demo
+# dbt PR reviewer demo
 
 This is the build-day demo harness, not a production deployment. It keeps the
 cloud pipeline untouched and runs a small, repeatable slice of the real dbt
@@ -66,19 +66,49 @@ check. It runs the exact DuckDB setup above on a pull request, builds
 `fct_vendor_daily_performance`, and enforces its contract. The intentional wrong
 join makes this check red; that failure is the future GitHub review agent's
 input. The workflow uses no cloud-warehouse credentials and no model API key.
+On a PR that does not change this named analyst model or its contract, the same
+required job exits successfully with an explicit skip so it does not block
+unrelated platform updates.
 
 The established `dbt-build` workflow stays separate: analyst demo models are
 enabled only for the `demo` target, so they do not contaminate Databricks CI.
 
-To create the real PR, run these commands yourself from the repository root:
+To publish the platform branch, stage only the demo platform files and run
+these commands yourself from the repository root:
 
 ```bash
-git add .
+git add demo .github/scripts .github/workflows/pr_review_agent.yml
 git commit -m "feat: add dbt PR review demo"
 git push -u origin codex/duckdb-agent-demo
 ```
 
-Then open a pull request from `codex/duckdb-agent-demo` into `main`. Expect
-`analyst-pr-duckdb` to fail because the simulated analyst model joins
+The platform branch stays isolated from `main`. Commit the harness on
+`codex/duckdb-agent-demo`, then create a separate analyst branch that contains
+`models/analyst_pr/` and open that PR **into** `codex/duckdb-agent-demo`.
+Expect `analyst-pr-duckdb` to fail because the simulated analyst model joins
 `vendor_id` to `city`. Do not repair that join yet—the red check is the demo's
 starting state.
+
+## GitHub PR review agent
+
+`.github/workflows/pr_review_agent.yml` adds the presentation-layer agent. It
+waits for a failed `Analyst PR DuckDB Check`, reads only the explicitly named
+analyst SQL file as text, and posts a GitHub review:
+
+- **HIGH / suggest fix:** a unified diff plus a native GitHub inline
+  suggestion. Select **Commit suggestion** to make the correction yourself.
+- **WARNING / warn for review:** an explanation and clarifying question, with
+  no SQL patch.
+
+The workflow never checks out or executes analyst PR code, never modifies
+files, and never commits. The base branch supplies the reviewer code and
+`AGENTS.md`; the PR SQL and dbt log are treated only as untrusted review
+evidence.
+
+Before using it, add `OPENAI_API_KEY` under **Settings → Secrets and variables
+→ Actions → New repository secret**. Optionally add an `OPENAI_REVIEW_MODEL`
+repository variable; otherwise the workflow uses `gpt-4.1-mini`.
+
+After you push this platform update to `codex/duckdb-agent-demo`, push any new
+commit to the analyst PR branch to trigger the review agent. The agent comment
+appears only after the DuckDB check finishes red.

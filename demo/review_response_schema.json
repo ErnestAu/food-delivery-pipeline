@@ -5,6 +5,10 @@
       "type": "string",
       "enum": ["suggest_fix", "warn_for_review", "pass"]
     },
+    "severity": {
+      "type": "string",
+      "enum": ["high", "warning", "info"]
+    },
     "summary": {
       "type": "string"
     },
@@ -20,6 +24,6 @@
       "description": "A question for the analyst when the decision is warn_for_review; an empty string otherwise."
     }
   },
-  "required": ["decision", "summary", "rationale", "proposed_sql", "clarifying_question"],
+  "required": ["decision", "severity", "summary", "rationale", "proposed_sql", "clarifying_question"],
   "additionalProperties": false
 }

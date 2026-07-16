@@ -2,15 +2,8 @@ name: Analyst PR DuckDB Check
 
 on:
   pull_request:
-    paths:
-      - '.github/workflows/analyst_pr_ci.yml'
-      - 'dbt/food_delivery/models/analyst_pr/**'
-      - 'dbt/food_delivery/dbt_project.yml'
-      - 'dbt/food_delivery/models/sources.yml'
-      - 'dbt/food_delivery/profiles.yml'
-      - 'dbt/food_delivery/packages.yml'
-      - 'dbt/food_delivery/package-lock.yml'
-      - 'demo/**'
+    branches:
+      - codex/duckdb-agent-demo
 
 permissions:
   contents: read
@@ -31,22 +24,43 @@ jobs:
       ANALYST_MODEL: fct_vendor_daily_performance
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Check whether this PR changes the named analyst model
+        id: scope
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if git diff --name-only "$BASE_SHA" "$HEAD_SHA" | grep -Eq '^dbt/food_delivery/models/analyst_pr/(fct_vendor_daily_performance\.sql|schema\.yml)$'; then
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+            echo "No named analyst model change; DuckDB check is intentionally skipped."
+          fi
 
       - uses: actions/setup-python@v6
+        if: steps.scope.outputs.should_run == 'true'
         with:
           python-version: '3.11'
 
       - name: Install local dbt adapter
+        if: steps.scope.outputs.should_run == 'true'
         run: pip install dbt-duckdb==1.10.1
 
       - name: Install dbt packages
+        if: steps.scope.outputs.should_run == 'true'
         run: dbt deps
 
       - name: Build deterministic DuckDB source layer
+        if: steps.scope.outputs.should_run == 'true'
         run: python ../../demo/load_demo_data.py
 
       - name: Build analyst model and dependencies
+        if: steps.scope.outputs.should_run == 'true'
         run: dbt run --target demo --select +$ANALYST_MODEL
 
       - name: Enforce analyst model contract
+        if: steps.scope.outputs.should_run == 'true'
         run: dbt test --target demo --select $ANALYST_MODEL

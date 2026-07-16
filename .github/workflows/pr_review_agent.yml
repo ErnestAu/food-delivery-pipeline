@@ -1,0 +1,51 @@
+name: dbt PR Review Agent
+
+on:
+  pull_request_target:
+    branches:
+      - codex/duckdb-agent-demo
+    paths:
+      - 'dbt/food_delivery/models/analyst_pr/fct_vendor_daily_performance.sql'
+      - 'dbt/food_delivery/models/analyst_pr/schema.yml'
+    types: [opened, synchronize, reopened]
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: dbt-pr-review-agent-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review-failed-analyst-check:
+    # Same-repository branches only: do not grant an API key to forked PRs.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    env:
+      ANALYST_CHECK_RESULT_PATH: ${{ runner.temp }}/analyst-check-result.json
+      GITHUB_TOKEN: ${{ github.token }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_REVIEW_MODEL: ${{ vars.OPENAI_REVIEW_MODEL }}
+      PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+      PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      REVIEW_CONTRACT_PATH: dbt/food_delivery/models/analyst_pr/schema.yml
+      REVIEW_MODEL_PATH: dbt/food_delivery/models/analyst_pr/fct_vendor_daily_performance.sql
+    steps:
+      # pull_request_target uses the base branch's trusted workflow. Never
+      # check out the analyst branch; its SQL is fetched later only as text.
+      - name: Check out trusted reviewer code
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+
+      - name: Wait for the DuckDB test verdict
+        id: analyst-check
+        run: python .github/scripts/wait_for_analyst_pr_check.py
+
+      - name: Review failed analyst SQL and post a proposal
+        if: steps.analyst-check.outputs.conclusion == 'failure'
+        run: python .github/scripts/review_analyst_pr.py

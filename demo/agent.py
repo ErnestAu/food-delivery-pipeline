@@ -137,9 +137,9 @@ Candidate analyst model: {model_path.relative_to(REPO_ROOT)}
 {supporting_context(scenario)}
 
 Classify this pull request using only the supplied contract and model context:
-- suggest_fix: one minimal SQL correction is directly supported by the failed contract.
-- warn_for_review: the behavior could be intentional and needs an analyst decision.
-- pass: the check passes and no review concern is apparent.
+- suggest_fix / high: one minimal SQL correction is directly supported by the failed contract.
+- warn_for_review / warning: the behavior could be intentional and needs an analyst decision.
+- pass / info: the check passes and no review concern is apparent.
 
 For suggest_fix, return the complete proposed candidate SQL. For warn_for_review
 and pass, return an empty proposed_sql. Never propose edits to tests, sources,
@@ -175,8 +175,13 @@ seeds, configuration, or established core models.
             raise RuntimeError("Codex did not return a structured PR review.")
         review = json.loads(output_path.read_text())
 
-    required = {"decision", "summary", "rationale", "proposed_sql", "clarifying_question"}
-    if not required.issubset(review) or review["decision"] not in {"suggest_fix", "warn_for_review", "pass"}:
+    required = {"decision", "severity", "summary", "rationale", "proposed_sql", "clarifying_question"}
+    expected_severity = {"suggest_fix": "high", "warn_for_review": "warning", "pass": "info"}
+    if (
+        not required.issubset(review)
+        or review["decision"] not in expected_severity
+        or review["severity"] != expected_severity[review["decision"]]
+    ):
         raise RuntimeError("Codex response did not match the PR-review schema.")
     return review
 
@@ -199,6 +204,7 @@ def validate_proposal(proposed_sql: str) -> str:
 
 def show_review(review: dict[str, str], scenario: dict[str, object]) -> None:
     print(f"\nDecision: {review['decision']}")
+    print(f"Severity: {review['severity']}")
     print(f"Summary: {review['summary']}")
     print(f"Rationale: {review['rationale']}")
 
@@ -227,6 +233,7 @@ def review(scenario_name: str, model: str | None) -> int:
         show_review(
             {
                 "decision": "pass",
+                "severity": "info",
                 "summary": "The candidate model's dbt check passed.",
                 "rationale": "No failed contract was supplied for remediation.",
                 "proposed_sql": "",
