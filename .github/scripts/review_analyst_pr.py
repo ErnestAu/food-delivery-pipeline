@@ -138,7 +138,15 @@ def call_gemini(prompt: str, model: str) -> dict[str, str]:
 
 
 def validate_proposal(proposed_sql: str) -> str:
-    candidate = proposed_sql.rstrip() + "\n"
+    candidate = proposed_sql.strip()
+    if candidate.startswith("```"):
+        lines = candidate.splitlines()
+        opening_fence = lines[0].strip().lower() if lines else ""
+        valid_fence = opening_fence in {"```", "```sql", "```jinja", "```dbt"}
+        if len(lines) < 3 or not valid_fence or lines[-1].strip() != "```":
+            raise RuntimeError("The proposed SQL uses an invalid Markdown code fence.")
+        candidate = "\n".join(lines[1:-1])
+    candidate = candidate.rstrip() + "\n"
     if not candidate.strip() or candidate.lstrip().startswith("```"):
         raise RuntimeError("The proposed SQL is not a complete raw model file.")
     normalized = candidate.lstrip().lower()
@@ -323,7 +331,7 @@ Return one strict JSON response.
 - Use suggest_fix and severity high only when a smallest correction to this exact analyst SQL file is directly supported.
 - Use warn_for_review and severity warning when business intent is ambiguous; include a clarifying question and no SQL.
 - Use pass and severity info only if no concern remains.
-- For suggest_fix, provide the complete corrected analyst SQL file. Do not modify or propose changes to tests, seeds, profiles, sources, data, or established core models.
+- For suggest_fix, provide only the complete corrected analyst SQL file in proposed_sql: no Markdown code fence and no explanatory prose. Do not modify or propose changes to tests, seeds, profiles, sources, data, or established core models.
 """
     model = os.environ.get("GEMINI_REVIEW_MODEL") or "gemini-2.5-flash"
     review_mode = f"Gemini model review ({model})"
@@ -399,6 +407,13 @@ def self_test() -> int:
     proposed = "select *\nfrom orders\nwhere vendor_id = vendors.vendor_id\n"
     assert suggestion_hunk(original, proposed) == (3, 3, "where vendor_id = vendors.vendor_id\n")
     validate_proposal("select 1\n")
+    assert validate_proposal("```sql\nselect 1\n```") == "select 1\n"
+    try:
+        validate_proposal("Here is the proposed SQL:\nselect 1\n")
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError("Explanatory prose must not be accepted as a SQL proposal.")
 
     candidate = (
         "with delivered_orders as (select 1 as vendor_id)\n"
