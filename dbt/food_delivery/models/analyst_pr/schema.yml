@@ -1,0 +1,21 @@
+version: 2
+
+models:
+  - name: fct_vendor_daily_performance
+    description: "Analyst-proposed daily vendor performance model, used only for the pull-request review demo."
+    columns:
+      - name: vendor_name
+        description: "Vendor display name resolved from the vendor dimension. Every delivered order must resolve to a vendor."
+        tests:
+          - not_null
+
+  - name: fct_order_lifecycle_timeline
+    description: "Analyst-proposed lifecycle timeline with a business-time adjustment. Its intended timestamp policy requires human confirmation."
+    tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: >
+              confirmed_at >= placed_at
+              and prepared_at >= confirmed_at
+              and picked_up_at >= prepared_at
+              and delivered_at >= picked_up_at
