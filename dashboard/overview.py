@@ -73,5 +73,5 @@ st.html(
 
 links = st.columns(3)
 links[0].page_link("pipeline_health.py", label="Pipeline health", icon=":material/monitor_heart:")
-links[1].page_link("food_delivery_ops.py", label="Operations", icon=":material/bar_chart:")
+links[1].page_link("operations.py", label="Operations", icon=":material/bar_chart:")
 links[2].page_link(REPO_URL, label="Source on GitHub", icon=":material/code:")

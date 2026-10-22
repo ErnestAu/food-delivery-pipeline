@@ -17,7 +17,7 @@ inject_css()
 
 overview = st.Page("overview.py", title="Overview", default=True)
 health = st.Page("pipeline_health.py", title="Pipeline health")
-ops = st.Page("food_delivery_ops.py", title="Operations")
+ops = st.Page("operations.py", title="Operations")
 
 st.navigation([overview, health, ops], position="top").run()
 

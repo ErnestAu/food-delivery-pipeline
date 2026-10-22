@@ -17,7 +17,7 @@ import streamlit as st
 from db import run_query
 from freshness import ago_text, freshness_state, minutes_since
 from queries import LAYERS, known_issues, last_pipeline_run, layer_stats, reconcile
-from ui import number, palette, tile, tiles
+from ui import PLOTLY_CONFIG, number, palette, tile, tiles
 
 BASELINE_COLOR = "#8e8e93"  # neutral reference line; readable on both themes
 WINDOWS = {"24h": 24, "48h": 48, "72h": 72, "7d": 24 * 7, "14d": 24 * 14}
@@ -102,7 +102,7 @@ def volume_chart(window_hours: int) -> None:
         hovermode="x unified",
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, title=None),
     )
-    st.plotly_chart(fig, width="stretch")
+    st.plotly_chart(fig, width="stretch", config=PLOTLY_CONFIG)
 
 
 choice = st.segmented_control("Window", options=list(WINDOWS), default="72h", label_visibility="collapsed")

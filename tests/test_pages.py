@@ -36,6 +36,27 @@ def fake_query(query, params=None):
         return pd.DataFrame({"layer": ["silver", "gold"], "last_event_at": [minutes_ago(10), minutes_ago(10)]})
     if "AS row_count" in q:
         return pd.DataFrame({"layer": ["bronze", "silver", "gold"], "row_count": [758512, 727208, 727208]})
+    days = pd.date_range(end=pd.Timestamp(NOW).normalize() - pd.Timedelta(days=1), periods=40, freq="D").date
+    if "AS min_date" in q:
+        return pd.DataFrame({"min_date": [days[0]], "max_date": [days[-1]]})
+    if "fct_daily_metrics" in q:
+        return pd.DataFrame({
+            "order_date": days, "total_orders": 300, "total_gmv": 450000, "delivered_orders": 280,
+            "cancelled_orders": 20, "cancellation_rate": 20 / 300, "avg_delivery_time_minutes": 34.5,
+        })
+    if "DAYOFWEEK" in q:
+        return pd.DataFrame([{"dow": d, "hour_of_day": h, "orders": 3 + h % 5} for d in range(1, 8) for h in range(24)])
+    if "vendor_name" in q:
+        return pd.DataFrame({
+            "vendor_name": ["Sushi <Zen>", "Ramen Ya"], "cuisine_type": ["japanese", "japanese"],
+            "orders": [120, 90], "gmv": [180000, 99000], "cancellation_rate": [0.05, 0.08],
+        })
+    if "cancel_reason" in q:
+        return pd.DataFrame({
+            "cancelled_by": ["customer", "customer", "vendor", "driver", "system"],
+            "cancel_reason": ["changed_mind", "too_slow", "out_of_stock", "vehicle_issue", "payment_failed"],
+            "cnt": [40, 22, 15, 6, 3],
+        })
     raise AssertionError(f"fake_query has no answer for: {q[:120]}")
 
 
@@ -82,3 +103,23 @@ def test_pipeline_health_renders(app):
         "Known issues, tracked not hidden",
         "Layer reconciliation",
     ]
+
+
+def test_operations_renders(app):
+    at = app.run()
+    at.switch_page("operations.py").run()
+    assert not at.exception
+    assert not unavailable(at)
+    assert [s.value for s in at.subheader] == ["Trend", "When orders arrive", "Top vendors", "Cancellations"]
+    assert [m.label for m in at.metric] == ["Orders", "GMV", "Average order", "Cancellation rate"]
+
+
+@pytest.mark.parametrize("page", ["operations.py", "pipeline_health.py"])
+def test_controls_fall_back_when_deselected(app, page):
+    at = app.run()
+    at.switch_page(page).run()
+    for control in at.button_group:
+        control.set_value(None)
+    at.run()
+    assert not at.exception
+    assert not unavailable(at)

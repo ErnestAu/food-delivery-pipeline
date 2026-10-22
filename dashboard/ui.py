@@ -15,6 +15,9 @@ from freshness import LABELS
 
 _CSS = Path(__file__).with_name("style.css")
 
+# Plotly's floating toolbar is chrome, not content, and covers legends on small screens.
+PLOTLY_CONFIG = {"displayModeBar": False}
+
 
 def inject_css() -> None:
     """Load the dashboard's only stylesheet. Called once per run, from app.py."""
