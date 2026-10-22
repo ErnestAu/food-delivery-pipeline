@@ -44,6 +44,21 @@ CAUSES = {
         "The page never rendered dashboard content: an app that didn't wake, a Streamlit "
         "Cloud error page, or a timeout. The check run's log has the page text.",
     ),
+    "data-stale": (
+        "Data stale",
+        "The dashboard is up, but the newest order in gold is more than 4 days old: the pipeline "
+        "has stopped. Check the Databricks job, and log in to the workspace in case compute is blocked.",
+    ),
+    "data-missing": (
+        "No data",
+        "The dashboard is up, but gold has no order events at all.",
+    ),
+}
+
+# Data causes are about the pipeline behind a working dashboard, so they read differently.
+_TITLES = {
+    "data-stale": "Pipeline stalled: no new orders for 4+ days",
+    "data-missing": "Pipeline empty: no orders in gold",
 }
 
 _MARKER = re.compile(r"<!-- cause: ([a-z-]+) -->")
@@ -51,6 +66,10 @@ _MARKER = re.compile(r"<!-- cause: ([a-z-]+) -->")
 
 def describe(cause: str) -> tuple[str, str]:
     return CAUSES.get(cause, (cause, "The dashboard reported a status this check doesn't recognise."))
+
+
+def title(cause: str) -> str:
+    return _TITLES.get(cause, f"Dashboard down: {describe(cause)[0]}")
 
 
 def parse_ts(value: str) -> datetime:
@@ -87,8 +106,9 @@ def _utc(moment: datetime) -> str:
 
 def issue_body(cause: str, app_url: str, run_url: str, now: datetime) -> str:
     label, meaning = describe(cause)
+    finding = "data out of date" if cause in _TITLES else "down"
     return "\n".join([
-        f"The scheduled health check found the [live dashboard]({app_url}) down.",
+        f"The scheduled health check found the [live dashboard]({app_url}) {finding}.",
         "",
         f"- **Cause:** {label}",
         f"- **First detected:** {_utc(now)}",
@@ -124,14 +144,14 @@ def main() -> None:
 
     action = decide(issue is not None, last, status, cause)
     if action == "open":
-        gh("issue", "create", "--title", f"Dashboard down: {describe(cause)[0]}",
+        gh("issue", "create", "--title", title(cause),
            "--label", LABEL, "--body", issue_body(cause, app_url, run_url, now))
     elif action == "comment":
         old = describe(last)[0] if last else "unknown"
         label, meaning = describe(cause)
         gh("issue", "comment", str(issue["number"]), "--body",
            f"Cause changed: {old} → {label}. {meaning} ([check run]({run_url}))\n\n<!-- cause: {cause} -->")
-        gh("issue", "edit", str(issue["number"]), "--title", f"Dashboard down: {label}")
+        gh("issue", "edit", str(issue["number"]), "--title", title(cause))
     elif action == "close":
         took = format_duration(parse_ts(issue["createdAt"]), now)
         gh("issue", "close", str(issue["number"]), "--comment",

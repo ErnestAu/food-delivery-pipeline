@@ -3,32 +3,23 @@
 Run with:
     streamlit run dashboard/app.py
 
-Pages:
-    - Pipeline Health   (default landing) — DE observability
-    - Food Delivery Ops — business KPIs
+Pages (top navigation):
+    - Overview (default) — what this is, how data flows, proof it's live
+    - Pipeline health — DE observability
+    - Operations — business KPIs
 """
 import streamlit as st
 
-st.set_page_config(
-    page_title="Food Delivery Pipeline",
-    page_icon="🍱",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+from ui import inject_css
 
-health = st.Page(
-    "pipeline_health.py",
-    title="Pipeline Health",
-    icon="🟢",
-    default=True,
-)
-ops = st.Page(
-    "food_delivery_ops.py",
-    title="Food Delivery Ops",
-    icon="🍱",
-)
+st.set_page_config(page_title="Food Delivery Pipeline", layout="wide")
+inject_css()
 
-st.navigation([health, ops]).run()
+overview = st.Page("overview.py", title="Overview", default=True)
+health = st.Page("pipeline_health.py", title="Pipeline health")
+ops = st.Page("operations.py", title="Operations")
+
+st.navigation([overview, health, ops], position="top").run()
 
 # The keep-alive check reads this marker as "the page rendered with data". st.stop()
 # and uncaught errors end the script before it, so it only appears on a clean render.
