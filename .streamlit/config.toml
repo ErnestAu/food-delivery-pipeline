@@ -1,0 +1,45 @@
+# Theme tokens for the dashboard (Apple system colors, adapted for the web).
+# Chart palettes were checked with the dataviz palette validator in both modes;
+# see docs/superpowers/specs/2026-10-22-dashboard-redesign-design.md.
+
+[client]
+toolbarMode = "viewer"
+
+[theme]
+font = "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+headingFontSizes = ["2.125rem", "1.375rem", "1.0625rem", "1rem", "0.875rem", "0.8125rem"]
+headingFontWeights = [700, 600, 600, 600, 600, 600]
+baseFontSize = 15
+baseRadius = "10px"
+metricValueFontSize = "1.75rem"
+metricValueFontWeight = 600
+showWidgetBorder = false
+linkUnderline = false
+
+[theme.light]
+primaryColor = "#007AFF"
+linkColor = "#0066CC"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F2F2F7"
+textColor = "#1D1D1F"
+borderColor = "#D2D2D7"
+greenColor = "#0ca30c"
+yellowColor = "#fab219"
+orangeColor = "#ec835a"
+redColor = "#d03b3b"
+chartCategoricalColors = ["#007AFF", "#FF2D55", "#AF52DE", "#1A9AB0"]
+chartSequentialColors = ["#cde2fb", "#b7d3f6", "#9ec5f4", "#86b6ef", "#6da7ec", "#3987e5", "#2a78d6", "#256abf", "#184f95", "#0d366b"]
+
+[theme.dark]
+primaryColor = "#0A84FF"
+linkColor = "#0A84FF"
+backgroundColor = "#000000"
+secondaryBackgroundColor = "#1C1C1E"
+textColor = "#F5F5F7"
+borderColor = "#38383A"
+greenColor = "#0ca30c"
+yellowColor = "#fab219"
+orangeColor = "#ec835a"
+redColor = "#d03b3b"
+chartCategoricalColors = ["#0A84FF", "#FF375F", "#BF5AF2", "#1A9AB0"]
+chartSequentialColors = ["#0d366b", "#184f95", "#256abf", "#2a78d6", "#3987e5", "#6da7ec", "#86b6ef", "#9ec5f4", "#b7d3f6", "#cde2fb"]
