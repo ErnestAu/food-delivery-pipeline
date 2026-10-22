@@ -2,6 +2,7 @@
 
 The dashboard renders `st-key-dashboard-ready` after a clean page render, or
 `st-key-dashboard-status-<kind>` when the warehouse fails (see dashboard/db.py).
+The Overview's status pill also carries `data-freshness` (live/delayed/stale/unknown).
 This script opens the app, wakes it if needed, waits for one of those markers,
 and writes `status` (ok/down) and `cause` to $GITHUB_OUTPUT for the workflow.
 It exits non-zero only when the monitor itself breaks.
@@ -17,6 +18,12 @@ READY = ".st-key-dashboard-ready"
 STATUS = "[class*='st-key-dashboard-status-']"
 EXCEPTION = "[data-testid='stException']"
 WAKE = "text=/get this app back up/i"
+FRESHNESS = "[data-freshness]"
+
+# Freshness states that count as an outage even though the page rendered.
+# The producer runs on laptop cron, so "delayed" can fire overnight; drop it to alert on stale only.
+ALERT_ON = {"delayed": "data-delayed", "stale": "data-stale", "unknown": "data-missing"}
+FRESHNESS_STATES = {"live", *ALERT_ON}
 
 DEADLINE_S = 240  # cold start + warehouse wake-up
 POLL_S = 5
@@ -32,12 +39,13 @@ class Observation:
     status: str | None
     exception: bool
     wake_button: bool
+    freshness: str | None = None
 
 
 def observe(frames) -> Observation:
     """Look for the markers in every frame; the app renders inside an iframe."""
     ready = exception = wake_button = False
-    status = None
+    status = freshness = None
     for frame in frames:
         try:
             ready = ready or frame.locator(READY).count() > 0
@@ -47,15 +55,21 @@ def observe(frames) -> Observation:
             if status is None and marker.count():
                 match = _KIND.search(marker.first.get_attribute("class") or "")
                 status = match.group(1) if match else None
+            pill = frame.locator(FRESHNESS)
+            if freshness is None and pill.count():
+                value = pill.first.get_attribute("data-freshness")
+                freshness = value if value in FRESHNESS_STATES else None
         except Exception:  # a frame can detach mid-poll while Streamlit Cloud reloads it
             continue
-    return Observation(ready, status, exception, wake_button)
+    return Observation(ready, status, exception, wake_button, freshness)
 
 
 def verdict(obs: Observation) -> tuple[str, str]:
     if obs.status:
         return "down", obs.status
     if obs.ready:
+        if obs.freshness in ALERT_ON:  # the page works, but the pipeline behind it has stalled
+            return "down", ALERT_ON[obs.freshness]
         return "ok", ""
     if obs.exception:
         return "down", "app-exception"

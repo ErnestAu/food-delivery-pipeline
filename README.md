@@ -111,8 +111,9 @@ Three layers, deliberately different:
   own check), and the Databricks job sends **failure-notification emails**.
 - **Watch from the outside** — the 6-hourly keep-alive (GitHub Actions + Playwright) reads
   what the live page actually shows and keeps one `dashboard-down` issue per outage, naming
-  the cause (token rejected, compute blocked, …) and closing it with the downtime on
-  recovery. It still works when the warehouse is down, which the SQL Alert can't see.
+  the cause (token rejected, compute blocked, data stale, …) and closing it with the downtime
+  on recovery. It still works when the warehouse is down, which the SQL Alert can't see, and
+  it flags a stalled pipeline even when the page itself renders fine.
 - **Dashboard the known** — the public **Pipeline health** page tracks freshness per
   layer (plus last pipeline run from Delta commit history), orders-per-hour against a
   trailing 7-day same-hour baseline (with a selectable window), counts of known

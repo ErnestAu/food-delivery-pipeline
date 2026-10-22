@@ -49,8 +49,9 @@ class Node:
 
 
 def status_pill(state: str, text: str) -> str:
+    """The freshness pill. data-freshness is read by the keep-alive check, not by CSS."""
     return (
-        f'<span class="fd-pill fd-state--{escape(state)}">'
+        f'<span class="fd-pill fd-state--{escape(state)}" data-freshness="{escape(state)}">'
         f'<span class="fd-dot"></span><span>{escape(text)}</span></span>'
     )
 

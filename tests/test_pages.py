@@ -90,6 +90,7 @@ def test_overview_renders(app):
     assert at.title[0].value == "Food Delivery Pipeline"
     page = html_of(at)
     assert "fd-state--live" in page and "758,512" in page and "dbt · 8 models" in page
+    assert 'data-freshness="live"' in page
 
 
 def test_pipeline_health_renders(app):

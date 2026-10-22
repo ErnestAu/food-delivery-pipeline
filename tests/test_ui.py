@@ -52,3 +52,7 @@ def test_number_formats_and_dashes_missing_values():
     from ui import number
 
     assert [number(None), number(31304), number(4.129, ".1f", "%"), number(0, ".1f", "%")] == ["—", "31,304", "4.1%", "0.0%"]
+
+
+def test_pill_carries_its_freshness_for_the_monitor():
+    assert 'data-freshness="stale"' in status_pill("stale", "Stale · last order 3 d ago")
