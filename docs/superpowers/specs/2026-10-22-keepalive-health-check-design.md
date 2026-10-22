@@ -11,9 +11,9 @@ The dashboard depends on one credential, `DATABRICKS_TOKEN` in Streamlit Cloud s
 | Outage | What Databricks returns | Fix |
 |---|---|---|
 | Expired or revoked token (Aug 2026) | `403` `Invalid access token` at `OpenSession` | Rotate the Streamlit secret, then reboot the app |
-| Free Edition compute block (Sep–Oct 2026, and again now) | `400` `BAD_REQUEST: Cannot create the resource` at `OpenSession` | None. It lifts on its own |
+| Free Edition compute block (Sep–Oct 2026, and again Oct 12–22) | `400` `BAD_REQUEST: Cannot create the resource` at `OpenSession` (the warehouse start API adds `denyReason: INACTIVE`) | Log in to the workspace and start the warehouse. That cleared it on 2026-10-22, and the October 7 recovery lined up with a login too. Token traffic doesn't count as activity |
 
-Streamlit Cloud redacts both to the same generic error, so the monitor can't tell them apart by reading the page. The Databricks freshness SQL Alert can't catch either one: it runs on the same warehouse, which is exactly what's down.
+The compute block also stalled the scheduled Databricks job for 10 days, and the freshness alert never fired. Streamlit Cloud redacts both outages to the same generic error, so the monitor can't tell them apart by reading the page. The Databricks freshness SQL Alert can't catch either one: it runs on the same warehouse, which is exactly what's down.
 
 ## Goals
 
