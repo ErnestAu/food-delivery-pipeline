@@ -20,3 +20,9 @@ def test_naive_timestamps_are_utc():
     assert minutes_since(pd.Timestamp("2026-10-22 20:00:00+09:00"), now) == 60
     assert minutes_since(None, now) is None
     assert minutes_since(pd.NaT, now) is None
+
+
+def test_ago_text():
+    from freshness import ago_text
+
+    assert [ago_text(m) for m in (None, 0.2, 12)] == ["no data yet", "just now", "12 min ago"]

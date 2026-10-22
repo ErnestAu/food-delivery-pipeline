@@ -46,3 +46,11 @@ def humanize(minutes: float | None) -> str:
     if hours:
         return f"{hours} h" + (f" {mins} min" if mins else "")
     return f"{mins} min"
+
+
+def ago_text(minutes: float | None) -> str:
+    """'12 min ago' for a timestamp; reads naturally after 'last order' or 'updated'."""
+    if minutes is None:
+        return "no data yet"
+    text = humanize(minutes)
+    return text if text == "just now" else f"{text} ago"

@@ -30,7 +30,7 @@ DATABRICKS_HTTP_PATH = get_secret("DATABRICKS_HTTP_PATH")
 DATABRICKS_TOKEN = get_secret("DATABRICKS_TOKEN")
 
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=300, show_spinner="Loading live data…")
 def _query(query: str, params: dict | None = None) -> pd.DataFrame:
     with sql.connect(
         server_hostname=DATABRICKS_HOST,

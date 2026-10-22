@@ -38,6 +38,11 @@
   font-size: 0.8125rem;
 }
 
+.fd-align-end {
+  display: flex;
+  justify-content: flex-end;
+}
+
 /* Status pill: a colored dot plus a word, never color alone. */
 .fd-pill {
   display: inline-flex;
@@ -141,11 +146,13 @@
   color: color-mix(in srgb, currentColor 62%, transparent);
 }
 
-/* Term / description list ("How it's built"). */
-.fd-defs {
+/* Term / description list ("How it's built"). Element + class to match the
+   specificity of Streamlit's own list padding, which this replaces. */
+dl.fd-defs {
   display: grid;
   grid-template-columns: minmax(8rem, 11rem) 1fr;
   margin: 0;
+  padding: 0;
 }
 .fd-defs dt,
 .fd-defs dd {
@@ -157,6 +164,7 @@
 .fd-defs dd { color: color-mix(in srgb, currentColor 80%, transparent); }
 
 @media (max-width: 760px) {
+  .fd-align-end { justify-content: flex-start; }
   [data-testid="stMainBlockContainer"] { padding-top: 2rem; }
   .fd-flow { flex-direction: column; }
   .fd-arrow { transform: rotate(90deg); }

@@ -24,6 +24,14 @@ def fake_query(query, params=None):
         return pd.DataFrame({"hr": hours, "orders": 30, "expected": 28})
     if "negative_gmv" in q:
         return pd.DataFrame({"negative_gmv": [55], "unknown_event_types": [1], "orphan_vendors": [5]})
+    if "information_schema.tables" in q:
+        return pd.DataFrame({"models": [8]})
+    if "AS row_count" in q and "last_event_at" in q:
+        return pd.DataFrame({
+            "layer": ["bronze", "silver", "gold"],
+            "row_count": [758512, 727208, 727208],
+            "last_event_at": [minutes_ago(10), minutes_ago(10), minutes_ago(10)],
+        })
     if "AS last_event_at" in q:
         return pd.DataFrame({"layer": ["silver", "gold"], "last_event_at": [minutes_ago(10), minutes_ago(10)]})
     if "AS row_count" in q:
@@ -49,3 +57,15 @@ def test_app_renders_without_exception(app):
     at = app.run()
     assert not at.exception
     assert not unavailable(at)
+
+
+def html_of(at):
+    return "".join(h.value for h in at.html)
+
+
+def test_overview_renders(app):
+    at = app.run()
+    assert not at.exception
+    assert at.title[0].value == "Food Delivery Pipeline"
+    page = html_of(at)
+    assert "fd-state--live" in page and "758,512" in page and "dbt · 8 models" in page
