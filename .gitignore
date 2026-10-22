@@ -1,6 +1,9 @@
 # Claude
 .claude/
 
+# Git worktrees (see AGENTS.md)
+.worktrees/
+
 # Generated data (big — runtime-only)
 data/raw/
 data/processed/
