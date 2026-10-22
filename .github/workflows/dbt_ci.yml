@@ -32,7 +32,7 @@ jobs:
         run: dbt deps
 
       - name: Seed fixture
-        run: dbt seed --target ci --full-refresh
+        run: dbt seed --target ci --full-refresh --threads 1
 
       - name: Build models
         run: dbt run --target ci --exclude fct_order_items
