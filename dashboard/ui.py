@@ -21,6 +21,19 @@ def inject_css() -> None:
     st.html(f"<style>{_CSS.read_text()}</style>")
 
 
+def palette(mode: str | None = None) -> dict[str, list[str]]:
+    """Chart colors for the active theme, read from .streamlit/config.toml.
+
+    Streamlit doesn't pass the theme's chart colors into Plotly figures, so charts set
+    them explicitly; config.toml stays the single place they're defined.
+    """
+    mode = mode or ("dark" if st.context.theme.type == "dark" else "light")
+    return {
+        "categorical": list(st.get_option(f"theme.{mode}.chartCategoricalColors")),
+        "sequential": list(st.get_option(f"theme.{mode}.chartSequentialColors")),
+    }
+
+
 @dataclass
 class Node:
     """One stage of the medallion flow on the Overview page."""
@@ -79,3 +92,8 @@ def flow(nodes: list[Node]) -> str:
 def defs(items: list[tuple[str, str]]) -> str:
     rows = "".join(f"<dt>{escape(term)}</dt><dd>{escape(text)}</dd>" for term, text in items)
     return f'<dl class="fd-defs">{rows}</dl>'
+
+
+def number(value, spec: str = ",", suffix: str = "") -> str:
+    """Format a number for a table cell; a dash when it's missing."""
+    return "—" if value is None else f"{format(value, spec)}{suffix}"

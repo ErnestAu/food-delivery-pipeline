@@ -9,8 +9,8 @@ LAYERS = ("bronze", "silver", "gold")
 
 _WHY = {
     "bronze": "Raw events as landed by Auto Loader",
-    "silver": "Duplicates removed on event ID; events more than an hour late dropped by the watermark",
-    "gold": "Modeled by dbt; expected to match silver",
+    "silver": "Duplicate event IDs, and events over an hour late",
+    "gold": "Modeled by dbt; should match silver",
 }
 
 

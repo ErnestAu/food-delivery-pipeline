@@ -1,116 +1,63 @@
-"""Pipeline Health — data-engineering observability view.
+"""Pipeline health — the deep dive behind the Overview's status pill.
 
-Answers the three questions an on-call DE asks:
-  1. Is data arriving?   (freshness)
-  2. Is volume normal?   (hourly trend)
-  3. Is the data sane?   (quality tracker + medallion funnel)
+Answers the questions an on-call data engineer asks, one section each:
+  1. Is data arriving?          (freshness)
+  2. Is volume normal?          (hourly orders vs a 7-day same-hour baseline)
+  3. Is the data sane?          (known issues, tracked rather than hidden)
+  4. Does every layer add up?   (row reconciliation bronze → silver → gold)
 """
 from __future__ import annotations
 
 from datetime import datetime, timezone
 
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
 from db import run_query
+from freshness import ago_text, freshness_state, minutes_since
+from queries import LAYERS, known_issues, last_pipeline_run, layer_stats, reconcile
+from ui import number, palette, tile, tiles
 
-FRESHNESS_STALE_MINUTES = 60 * 24 * 2  # 2 days — only flag genuinely stale data
+BASELINE_COLOR = "#8e8e93"  # neutral reference line; readable on both themes
+WINDOWS = {"24h": 24, "48h": 48, "72h": 72, "7d": 24 * 7, "14d": 24 * 14}
+
+now = datetime.now(timezone.utc)
+stats = layer_stats().set_index("layer")
 
 
-def _as_utc(ts) -> datetime:
-    """Normalize a query result timestamp (naive or tz-aware) to an aware UTC datetime."""
-    ts = pd.Timestamp(ts)
-    ts = ts.tz_localize("UTC") if ts.tzinfo is None else ts.tz_convert("UTC")
-    return ts.to_pydatetime()
+def layer_age(layer: str) -> float | None:
+    return minutes_since(stats.at[layer, "last_event_at"], now) if layer in stats.index else None
 
 
-def _humanize(mins: float) -> str:
-    """Minutes -> 'just now' / '1h 10m ago' / '2d 3h ago'."""
-    mins = max(0, int(mins))
-    if mins < 1:
-        return "just now"
-    days, rem = divmod(mins, 60 * 24)
-    hours, minutes = divmod(rem, 60)
-    parts = []
-    if days:
-        parts.append(f"{days}d")
-    if hours:
-        parts.append(f"{hours}h")
-    if minutes or not parts:
-        parts.append(f"{minutes}m")
-    return " ".join(parts) + " ago"
-
-st.sidebar.title("⚙️ Monitoring")
-st.sidebar.caption("Live checks against the warehouse, refreshed every 5 minutes.")
-st.sidebar.divider()
-if st.sidebar.button("🔄 Refresh data"):
-    st.cache_data.clear()
-    st.rerun()
-
-st.title("🟢 Pipeline Health")
-st.caption("Data-engineering observability — freshness, volume, and data-quality tracking.")
-
-# ---------- Panel 1: Freshness ----------
-st.subheader("🕒 Freshness")
-st.caption("How recently the newest order event landed in each layer.")
-
-fresh = run_query(
-    """
-    SELECT 'silver' AS layer, max(occurred_at) AS last_event_at
-    FROM food_delivery.silver.order_events
-    UNION ALL
-    SELECT 'gold', max(occurred_at)
-    FROM food_delivery.gold_dbt.fct_order_events
-    """
+st.title("Pipeline health")
+st.html(
+    '<p class="fd-lede">Is data arriving, is volume normal, is the data sane, '
+    "and does every layer add up?</p>"
 )
-order = {"silver": 0, "gold": 1}
-fresh = fresh.sort_values("layer", key=lambda s: s.map(order))
 
-refresh = run_query(
-    """
-    SELECT timestamp AS last_refresh_at
-    FROM (DESCRIBE HISTORY food_delivery.silver.order_events)
-    ORDER BY version DESC
-    LIMIT 1
-    """
+# ---------- Freshness ----------
+st.subheader("Freshness")
+run_age = minutes_since(last_pipeline_run(), now)
+st.html(
+    tiles([
+        tile("Pipeline last ran", ago_text(run_age), note="Latest commit to silver", state=freshness_state(run_age)),
+        tile("Silver", ago_text(layer_age("silver")), note="Newest order event",
+             state=freshness_state(layer_age("silver"))),
+        tile("Gold", ago_text(layer_age("gold")), note="Newest order event",
+             state=freshness_state(layer_age("gold"))),
+    ])
+)
+
+# ---------- Volume ----------
+st.subheader("Volume against the 7-day baseline")
+st.html(
+    '<p class="fd-muted">Orders per hour; the dashed line is the average for that hour '
+    "over the previous seven days. Bars well below it flag an anomaly.</p>"
 )
 
 
-def _freshness_metric(col, label: str, ts) -> None:
-    if pd.isna(ts):
-        col.metric(label, "no data")
-        return
-    mins_ago = (datetime.now(timezone.utc) - _as_utc(ts)).total_seconds() / 60
-    stale = mins_ago > FRESHNESS_STALE_MINUTES
-    col.metric(
-        label,
-        _humanize(mins_ago),
-        delta="⚠️ stale" if stale else "✅ fresh",
-        delta_color="inverse" if stale else "normal",
-    )
-
-
-c1, c2, c3 = st.columns(3)
-_freshness_metric(
-    c1, "Pipeline last ran",
-    refresh["last_refresh_at"].iloc[0] if not refresh.empty else None,
-)
-_freshness_metric(c2, "Silver — last order event", fresh.iloc[0]["last_event_at"])
-_freshness_metric(c3, "Gold — last order event", fresh.iloc[1]["last_event_at"])
-
-st.divider()
-
-# ---------- Panel 2: Volume trend (vs 7-day-average baseline) ----------
-st.subheader("📦 Volume — orders per hour vs 7-day average")
-st.caption(
-    "Bars = actual orders per hour. "
-    "Dotted line = average for that hour-of-day over the trailing 7 days — bars dropping well below it flag an anomaly."
-)
-
-
-def volume_panel(window_hours: int) -> None:
+def volume_chart(window_hours: int) -> None:
     window_hours = int(window_hours)  # interpolated into SQL below — keep it a literal int
     df = run_query(
         f"""
@@ -142,71 +89,62 @@ def volume_panel(window_hours: int) -> None:
         st.info("No orders in this window.")
         return
     fig = go.Figure()
-    fig.add_bar(x=df["hr"], y=df["orders"], name="Actual", marker_color="#3b82f6")
+    fig.add_bar(x=df["hr"], y=df["orders"], name="Orders", marker_color=palette()["categorical"][0])
     fig.add_scatter(
-        x=df["hr"],
-        y=df["expected"],
-        name="7-day avg (same hour)",
-        mode="lines",
-        line=dict(color="#f59e0b", width=2, dash="dot"),
+        x=df["hr"], y=df["expected"], name="7-day average, same hour",
+        mode="lines", line=dict(color=BASELINE_COLOR, width=2, dash="dash"),
     )
     fig.update_layout(
         height=300,
-        margin=dict(l=0, r=0, t=10, b=0),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        margin=dict(l=0, r=0, t=8, b=0),
+        bargap=0.2,
+        barcornerradius=4,
+        hovermode="x unified",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, title=None),
     )
     st.plotly_chart(fig, width="stretch")
 
 
-window_options = {"24h": 24, "48h": 48, "72h": 72, "7d": 24 * 7, "14d": 24 * 14}
-choice = st.segmented_control(
-    "Window",
-    options=list(window_options.keys()),
-    default="72h",
-    label_visibility="collapsed",
+choice = st.segmented_control("Window", options=list(WINDOWS), default="72h", label_visibility="collapsed")
+volume_chart(WINDOWS[choice or "72h"])
+
+# ---------- Known issues ----------
+st.subheader("Known issues, tracked not hidden")
+st.html(
+    '<p class="fd-muted">Real problems the dbt tests caught, left visible on purpose and '
+    "counted here rather than alerted on.</p>"
 )
-volume_panel(window_options[choice or "72h"])
-
-st.divider()
-
-# ---------- Panel 3: Data-quality tracker ----------
-st.subheader("🧪 Data quality")
-st.caption("Records flagged by our automated data-quality checks, tracked over time.")
-
-q = run_query(
-    """
-    SELECT
-      (SELECT count(*) FROM food_delivery.gold_dbt.fct_orders WHERE gmv < 0) AS negative_gmv,
-      (SELECT count(*) FROM food_delivery.gold_dbt.fct_order_events
-         WHERE event_type NOT IN ('order_placed','order_confirmed','order_prepared',
-                                  'order_picked_up','order_delivered','order_cancelled')) AS unknown_event_types,
-      (SELECT count(*) FROM food_delivery.gold_dbt.fct_orders o
-         LEFT JOIN food_delivery.gold_dbt.dim_vendor v ON o.vendor_id = v.vendor_id
-         WHERE v.vendor_id IS NULL AND o.vendor_id IS NOT NULL) AS orphan_vendors
-    """
-).iloc[0]
-
-qcols = st.columns(3)
-qcols[0].metric("Negative GMV orders", f"{int(q['negative_gmv']):,}")
-qcols[1].metric("Unknown event types", f"{int(q['unknown_event_types']):,}")
-qcols[2].metric("Orphaned vendor IDs", f"{int(q['orphan_vendors']):,}")
-
-st.divider()
-
-# ---------- Panel 4: Row counts by layer ----------
-st.subheader("🔻 Row counts by layer")
-st.caption("Event counts as data flows bronze → silver → gold. Large drops between layers can indicate data loss.")
-
-funnel = run_query(
-    """
-    SELECT 'bronze' AS layer, count(*) AS row_count FROM food_delivery.bronze.order_events
-    UNION ALL SELECT 'silver', count(*) FROM food_delivery.silver.order_events
-    UNION ALL SELECT 'gold', count(*) FROM food_delivery.gold_dbt.fct_order_events
-    """
+issues = known_issues()
+st.html(
+    tiles([
+        tile("Negative GMV orders", f"{int(issues['negative_gmv']):,}",
+             note="Uncapped ¥500 discount on small orders"),
+        tile("Unknown event types", f"{int(issues['unknown_event_types']):,}",
+             note="Simulator events outside the agreed contract"),
+        tile("Orphaned vendor IDs", f"{int(issues['orphan_vendors']):,}",
+             note="Dimension IDs regenerated outside the warehouse"),
+    ])
 )
-funnel_order = {"bronze": 0, "silver": 1, "gold": 2}
-funnel = funnel.sort_values("layer", key=lambda s: s.map(funnel_order))
-fig = px.funnel(funnel, x="row_count", y="layer", labels={"row_count": "Events", "layer": ""})
-fig.update_traces(marker_color="#6366f1")
-fig.update_layout(height=280, margin=dict(l=0, r=0, t=10, b=0))
-st.plotly_chart(fig, width="stretch")
+
+# ---------- Layer reconciliation ----------
+st.subheader("Layer reconciliation")
+counts = {layer: int(stats.at[layer, "row_count"]) if layer in stats.index else None for layer in LAYERS}
+rows = reconcile(counts)
+right = {"alignment": "right"}
+st.dataframe(
+    pd.DataFrame({
+        "Layer": [r["layer"] for r in rows],
+        "Rows": [number(r["rows"]) for r in rows],
+        "Dropped": [number(r["dropped"]) for r in rows],
+        "Dropped %": [number(r["dropped_pct"], ".1f", "%") for r in rows],
+        "Why rows drop": [r["why"] for r in rows],
+    }),
+    hide_index=True,
+    width="stretch",
+    column_config={
+        "Rows": st.column_config.TextColumn(**right),
+        "Dropped": st.column_config.TextColumn(**right),
+        "Dropped %": st.column_config.TextColumn(**right),
+        "Why rows drop": st.column_config.TextColumn(width="large"),
+    },
+)

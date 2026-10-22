@@ -37,3 +37,18 @@ def test_flow_formats_counts_and_joins_nodes_with_arrows():
     html = flow([Node("Bronze", "Auto Loader", 758512, "1 h ago"), Node("Silver", "Dedup", 727208, "1 h ago")])
     assert "758,512" in html and "727,208" in html
     assert html.count("fd-arrow") == 1
+
+
+def test_palette_reads_the_theme_config():
+    from ui import palette
+
+    light = palette("light")
+    assert light["categorical"] == ["#007AFF", "#FF2D55", "#AF52DE", "#1A9AB0"]
+    assert len(light["sequential"]) == 10 and light["sequential"][0] == "#cde2fb"
+    assert palette("dark")["sequential"][0] == "#0d366b"
+
+
+def test_number_formats_and_dashes_missing_values():
+    from ui import number
+
+    assert [number(None), number(31304), number(4.129, ".1f", "%"), number(0, ".1f", "%")] == ["—", "31,304", "4.1%", "0.0%"]
