@@ -99,7 +99,12 @@ def check(url: str) -> tuple[str, str]:
     with sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page()
-        page.goto(url, timeout=60_000)
+        try:
+            page.goto(url, timeout=60_000)
+        except Exception as exc:  # unreachable app or Streamlit Cloud: an outage, not a monitor bug
+            print(f"Could not load {url}: {exc}")
+            browser.close()
+            return "down", "no-content"
         deadline = time.monotonic() + DEADLINE_S
         obs = observe(page.frames)
         while not (obs.ready or obs.status or obs.exception) and time.monotonic() < deadline:
