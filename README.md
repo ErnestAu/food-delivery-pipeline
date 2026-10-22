@@ -10,7 +10,7 @@
 
 🔗 **Live dashboard:** [ernestau-food-delivery-ops.streamlit.app](https://ernestau-food-delivery-ops.streamlit.app)
 
-![Dashboard overview: the medallion flow with live row counts, freshness status, and the decisions behind the pipeline](docs/dashboard-overview.png)
+![Dashboard: overview of the medallion flow, pipeline health, and operations](docs/dashboard-preview.png)
 
 📋 **Requirements & data model:** [`requirements-and-data-model.png`](docs/requirements-and-data-model.png)
 
