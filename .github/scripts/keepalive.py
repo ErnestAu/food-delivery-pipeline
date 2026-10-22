@@ -23,7 +23,7 @@ POLL_S = 5
 RETRY_S = 120  # one second look before calling an outage
 LINGER_S = 10  # let Streamlit register the visit
 
-_KIND = re.compile(r"st-key-dashboard-status-(\S+)")
+_KIND = re.compile(r"st-key-dashboard-status-([a-z0-9-]+)")  # the kind flows into the workflow
 
 
 @dataclass

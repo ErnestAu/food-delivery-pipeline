@@ -1,13 +1,24 @@
-name: Keep Streamlit App Awake
+name: Keep-alive & health check
 
 on:
   schedule:
     - cron: '0 */6 * * *'   # every 6 hours
   workflow_dispatch: {}       # manual trigger for testing
 
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: keepalive
+  cancel-in-progress: false
+
 jobs:
-  ping:
+  check:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      APP_URL: https://ernestau-food-delivery-ops.streamlit.app
     steps:
       - uses: actions/checkout@v5
 
@@ -17,10 +28,26 @@ jobs:
 
       - name: Install Playwright
         run: |
-          pip install playwright
+          pip install playwright==1.64.0
           playwright install --with-deps chromium
 
-      - name: Wake / ping the Streamlit app
-        env:
-          APP_URL: https://ernestau-food-delivery-ops.streamlit.app
+      - name: Check the dashboard
+        id: check
         run: python .github/scripts/keepalive.py
+
+      - name: Open, update or close the outage issue
+        if: steps.check.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STATUS: ${{ steps.check.outputs.status }}
+          CAUSE: ${{ steps.check.outputs.cause }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: python .github/scripts/dashboard_issue.py
+
+      - name: Fail when the dashboard is down
+        if: steps.check.outputs.status == 'down'
+        env:
+          CAUSE: ${{ steps.check.outputs.cause }}
+        run: |
+          echo "::error::Dashboard down: $CAUSE"
+          exit 1

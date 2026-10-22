@@ -70,3 +70,8 @@ def test_write_outputs_appends_to_file(tmp_path):
 def test_write_outputs_without_path_prints(capsys):
     write_outputs("ok", "", None)
     assert "status=ok" in capsys.readouterr().out
+
+
+def test_observe_keeps_only_safe_kind_characters():
+    frame = FakeFrame({STATUS: 1}, status_class="st-key-dashboard-status-token-rejected$(curl) other")
+    assert observe([frame]).status == "token-rejected"
