@@ -101,11 +101,15 @@ re-running the same hour reproduces identical events, and silver's
 
 ## 🩺 Observability
 
-Two layers, deliberately different:
+Three layers, deliberately different:
 
 - **Alert on the unexpected** — a Databricks **SQL Alert** fires if the newest event
   is more than 3 hours old (a stalled pipeline fails no tests — liveness needs its
   own check), and the Databricks job sends **failure-notification emails**.
+- **Watch from the outside** — the 6-hourly keep-alive (GitHub Actions + Playwright) reads
+  what the live page actually shows and keeps one `dashboard-down` issue per outage, naming
+  the cause (token rejected, compute blocked, …) and closing it with the downtime on
+  recovery. It still works when the warehouse is down, which the SQL Alert can't see.
 - **Dashboard the known** — the public **Pipeline Health** page tracks freshness per
   layer (plus last pipeline run from Delta commit history), orders-per-hour against a
   trailing 7-day same-hour baseline (with a selectable window), counts of known

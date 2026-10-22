@@ -29,3 +29,8 @@ ops = st.Page(
 )
 
 st.navigation([health, ops]).run()
+
+# The keep-alive check reads this marker as "the page rendered with data". st.stop()
+# and uncaught errors end the script before it, so it only appears on a clean render.
+with st.container(key="dashboard-ready"):
+    st.html("<span></span>")
