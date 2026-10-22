@@ -1,5 +1,8 @@
-# Claude
-.claude/
+# Agent settings stay local; vendored skills and design context are shared
+.claude/*
+!.claude/skills/
+!.claude/apple-design-context.md
+.claude/skills/*/references/
 
 # Git worktrees (see AGENTS.md)
 .worktrees/
