@@ -122,3 +122,26 @@ The date range becomes one segmented control (7d / 30d / 90d / All) above the ch
 ## Out of scope
 
 New metrics or analyses, changes to query semantics beyond the reconciliation table, and any dbt or pipeline change.
+
+## Addendum (2026-10-22): alert when the data goes stale
+
+After the redesign shipped locally, the Databricks job sat idle for hours after compute came back. The dashboard rendered fine and showed "Stale", so the keep-alive counted it as healthy. The maintainer asked for the keep-alive to also raise an outage when the Overview pill says Delayed or Stale.
+
+- **App:** the Overview pill carries `data-freshness="live|delayed|stale|unknown"`. It's an explicit contract for the monitor, separate from the styling classes.
+- **Monitor:** once the page has finished (`dashboard-ready` present), the freshness value decides the verdict:
+
+  | Pill state | Verdict |
+  |---|---|
+  | `delayed` | down / `data-delayed` |
+  | `stale` | down / `data-stale` |
+  | `unknown` | down / `data-missing` |
+  | `live`, or no attribute | `ok` |
+
+  A status marker (dashboard down) still takes precedence.
+- **Issue:** the same one-issue-per-outage flow. Data causes get their own titles:
+  - "Pipeline delayed: no new orders for 3+ hours"
+  - "Pipeline stalled: no new orders for 2+ days"
+  - "Pipeline empty: no orders in gold"
+
+  Each one explains what to check.
+- **Known trade-off:** the producer runs on laptop cron, so overnight sleep can push the newest order past 3 hours. The states that trigger alerts are one constant in `keepalive.py` (`ALERT_ON`), so narrowing to Stale only is a one-line change.

@@ -294,3 +294,24 @@ def test_reconcile_missing_layer():
   Fix anything found, with a ledger ruling.
 - [ ] **Step 3: Save the three light-mode desktop screenshots** to `docs/` and update the README references and text.
 - [ ] **Step 4: Run** `pytest -q`. **Commit:** `docs: refresh dashboard screenshots and README for the redesign`
+
+### Task 8: Alert on stale data (addendum)
+
+**Files:** `dashboard/ui.py` (`status_pill` emits `data-freshness`), `.github/scripts/keepalive.py`, `.github/scripts/dashboard_issue.py`, `README.md`. Tests: `tests/test_ui.py`, `tests/test_keepalive.py`, `tests/test_dashboard_issue.py`, `tests/test_pages.py`.
+
+**Interfaces:**
+- `Observation` gains `freshness: str | None` (a field with a default, so existing constructors keep working).
+- `ALERT_ON = {"delayed": "data-delayed", "stale": "data-stale", "unknown": "data-missing"}` in `keepalive.py`.
+- `dashboard_issue.title(cause) -> str`.
+
+- [ ] **Step 1: Write the failing tests.**
+  - The pill HTML carries `data-freshness`.
+  - `observe` reads the attribute only for known states.
+  - `verdict`: ready + delayed/stale/unknown is down with the matching data cause; ready + live, or no attribute, is ok; a status marker beats freshness.
+  - `CAUSES` and `title()` cover the three data causes.
+  - The Overview HTML contains `data-freshness="live"`.
+
+  Run `pytest -q`. Expected: failures on the new tests only.
+- [ ] **Step 2: Implement.** Run `pytest -q`. Expected: all pass.
+- [ ] **Step 3: Verify.** Run the monitor against the local app; it should report `ok` while the data is live. Dry-run the issue script for `down` / `data-stale`; it should print the "Pipeline stalled" title.
+- [ ] **Step 4:** Update the README Observability bullet. **Commit:** `feat: open an outage issue when the dashboard's data goes stale`
