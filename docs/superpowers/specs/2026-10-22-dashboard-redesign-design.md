@@ -145,3 +145,5 @@ After the redesign shipped locally, the Databricks job sat idle for hours after 
 
   Each one explains what to check.
 - **Known trade-off:** the producer runs on laptop cron, so overnight sleep can push the newest order past 3 hours. The states that trigger alerts are one constant in `keepalive.py` (`ALERT_ON`), so narrowing to Stale only is a one-line change.
+
+**Revised the same day:** the maintainer chose to alert only when the newest order is **4+ days** old, or when gold has no data. Laptop-sleep gaps in the last 29 days reached 27 hours (42 gaps over 3 hours, none over 2 days). The pill also carries `data-age-minutes`, the monitor alerts at `ALERT_AFTER_MINUTES = 5760`, and `data-delayed` was removed. The pill's display thresholds are unchanged.

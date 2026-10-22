@@ -51,7 +51,7 @@ def test_body_carries_cause_marker_and_links():
 def test_every_kind_has_copy():
     assert set(CAUSES) == {
         "token-rejected", "compute-blocked", "query-failed", "app-exception", "no-content",
-        "data-delayed", "data-stale", "data-missing",
+        "data-stale", "data-missing",
     }
 
 
@@ -102,17 +102,16 @@ def test_main_stays_quiet_on_same_cause(monkeypatch):
 
 
 def test_data_causes_get_pipeline_titles():
-    assert title("data-stale") == "Pipeline stalled: no new orders for 2+ days"
-    assert title("data-delayed") == "Pipeline delayed: no new orders for 3+ hours"
+    assert title("data-stale") == "Pipeline stalled: no new orders for 4+ days"
     assert title("compute-blocked") == "Dashboard down: Databricks compute blocked"
 
 
 def test_main_opens_a_pipeline_issue_for_stale_data(monkeypatch):
     calls = run_main(monkeypatch, "down", "data-stale", [])
     create = next(c for c in calls if c[:2] == ("issue", "create"))
-    assert create[create.index("--title") + 1] == "Pipeline stalled: no new orders for 2+ days"
+    assert create[create.index("--title") + 1] == "Pipeline stalled: no new orders for 4+ days"
 
 
 def test_data_issue_body_says_the_data_is_old_not_that_the_dashboard_is_down():
-    body = issue_body("data-delayed", "https://app", "https://run", parse_ts("2026-10-22T06:00:00Z"))
+    body = issue_body("data-stale", "https://app", "https://run", parse_ts("2026-10-22T06:00:00Z"))
     assert "out of date" in body and "down" not in body.split("\n")[0]

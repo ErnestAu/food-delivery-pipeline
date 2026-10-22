@@ -44,14 +44,9 @@ CAUSES = {
         "The page never rendered dashboard content: an app that didn't wake, a Streamlit "
         "Cloud error page, or a timeout. The check run's log has the page text.",
     ),
-    "data-delayed": (
-        "Data delayed",
-        "The dashboard is up, but the newest order in gold is more than 3 hours old. Check the "
-        "Databricks job's recent runs; the laptop producer may also be asleep.",
-    ),
     "data-stale": (
         "Data stale",
-        "The dashboard is up, but the newest order in gold is more than 2 days old: the pipeline "
+        "The dashboard is up, but the newest order in gold is more than 4 days old: the pipeline "
         "has stopped. Check the Databricks job, and log in to the workspace in case compute is blocked.",
     ),
     "data-missing": (
@@ -62,8 +57,7 @@ CAUSES = {
 
 # Data causes are about the pipeline behind a working dashboard, so they read differently.
 _TITLES = {
-    "data-delayed": "Pipeline delayed: no new orders for 3+ hours",
-    "data-stale": "Pipeline stalled: no new orders for 2+ days",
+    "data-stale": "Pipeline stalled: no new orders for 4+ days",
     "data-missing": "Pipeline empty: no orders in gold",
 }
 

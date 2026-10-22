@@ -28,7 +28,7 @@ gold_state = freshness_state(age["gold"])
 title_col, pill_col = st.columns([3, 1], vertical_alignment="center")
 title_col.title("Food Delivery Pipeline")
 pill_text = f"{LABELS[gold_state]} · last order {ago_text(age['gold'])}"
-pill_col.html(f'<div class="fd-align-end">{status_pill(gold_state, pill_text)}</div>')
+pill_col.html(f'<div class="fd-align-end">{status_pill(gold_state, pill_text, age["gold"])}</div>')
 st.html(
     '<p class="fd-lede">A simulated food-delivery marketplace, streamed through a medallion '
     "lakehouse on Databricks, modeled and tested with dbt, and monitored end to end.</p>"

@@ -48,10 +48,11 @@ class Node:
     counts: bool = True  # Source and Serving have no row count to show
 
 
-def status_pill(state: str, text: str) -> str:
-    """The freshness pill. data-freshness is read by the keep-alive check, not by CSS."""
+def status_pill(state: str, text: str, age_minutes: float | None = None) -> str:
+    """The freshness pill. The data-* attributes are read by the keep-alive check, not by CSS."""
+    age = "" if age_minutes is None else f' data-age-minutes="{int(age_minutes)}"'
     return (
-        f'<span class="fd-pill fd-state--{escape(state)}" data-freshness="{escape(state)}">'
+        f'<span class="fd-pill fd-state--{escape(state)}" data-freshness="{escape(state)}"{age}>'
         f'<span class="fd-dot"></span><span>{escape(text)}</span></span>'
     )
 

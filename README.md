@@ -113,7 +113,7 @@ Three layers, deliberately different:
   what the live page actually shows and keeps one `dashboard-down` issue per outage, naming
   the cause (token rejected, compute blocked, data stale, …) and closing it with the downtime
   on recovery. It still works when the warehouse is down, which the SQL Alert can't see, and
-  it flags a stalled pipeline even when the page itself renders fine.
+  it flags a pipeline stalled for 4+ days even when the page itself renders fine.
 - **Dashboard the known** — the public **Pipeline health** page tracks freshness per
   layer (plus last pipeline run from Delta commit history), orders-per-hour against a
   trailing 7-day same-hour baseline (with a selectable window), counts of known

@@ -56,3 +56,8 @@ def test_number_formats_and_dashes_missing_values():
 
 def test_pill_carries_its_freshness_for_the_monitor():
     assert 'data-freshness="stale"' in status_pill("stale", "Stale · last order 3 d ago")
+
+
+def test_pill_carries_the_data_age_in_minutes():
+    assert 'data-age-minutes="5761"' in status_pill("stale", "Stale", age_minutes=5761.4)
+    assert "data-age-minutes" not in status_pill("unknown", "No data")
