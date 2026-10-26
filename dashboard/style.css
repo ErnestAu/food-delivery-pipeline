@@ -1,0 +1,174 @@
+/*
+ * The dashboard's only stylesheet, injected once by ui.inject_css().
+ *
+ * Theme colors live in .streamlit/config.toml. Neutral surfaces here are mixed from
+ * currentColor (the theme's text color), so the same rules work in light and dark.
+ * Status colors are the fixed dataviz set and always sit next to a word.
+ */
+
+:root {
+  --fd-live: #0ca30c;
+  --fd-delayed: #fab219;
+  --fd-stale: #d03b3b;
+  --fd-unknown: #8e8e93;
+  --fd-radius: 14px;
+}
+
+/* Streamlit internal (data-testid): cap the reading width on wide screens. */
+[data-testid="stMainBlockContainer"] {
+  max-width: 1200px;
+  padding-top: 3rem;
+}
+
+/* Streamlit internal (data-testid): numbers line up when they update. */
+[data-testid="stMetricValue"] {
+  font-variant-numeric: tabular-nums;
+}
+
+.fd-lede {
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  max-width: 62ch;
+  margin: 0;
+  color: color-mix(in srgb, currentColor 72%, transparent);
+}
+
+.fd-muted {
+  color: color-mix(in srgb, currentColor 62%, transparent);
+  font-size: 0.8125rem;
+}
+
+.fd-align-end {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Status pill: a colored dot plus a word, never color alone. */
+.fd-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.875rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 6%, transparent);
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.fd-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  flex: none;
+  background: var(--fd-unknown);
+}
+.fd-state--live .fd-dot { background: var(--fd-live); }
+.fd-state--delayed .fd-dot { background: var(--fd-delayed); }
+.fd-state--stale .fd-dot { background: var(--fd-stale); }
+
+/* Medallion flow: five cards joined by arrows; stacks on narrow screens. */
+.fd-flow {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0;
+}
+.fd-node {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 1rem 1.125rem;
+  border-radius: var(--fd-radius);
+  background: color-mix(in srgb, currentColor 5%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.fd-node__name {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: color-mix(in srgb, currentColor 62%, transparent);
+}
+.fd-node__tech {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.fd-node__rows {
+  font-size: 1.375rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  margin-top: auto;
+  padding-top: 0.75rem;
+}
+.fd-node__updated {
+  font-size: 0.8125rem;
+  color: color-mix(in srgb, currentColor 62%, transparent);
+}
+.fd-arrow {
+  align-self: center;
+  flex: none;
+  font-size: 1.125rem;
+  color: color-mix(in srgb, currentColor 40%, transparent);
+}
+
+/* Stat tiles. */
+.fd-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+.fd-tile {
+  padding: 1rem 1.125rem;
+  border-radius: var(--fd-radius);
+  background: color-mix(in srgb, currentColor 5%, transparent);
+}
+.fd-tile__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: color-mix(in srgb, currentColor 62%, transparent);
+}
+.fd-tile__value {
+  font-size: 1.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  margin: 0.25rem 0;
+}
+.fd-tile__state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.fd-tile__note {
+  font-size: 0.8125rem;
+  color: color-mix(in srgb, currentColor 62%, transparent);
+}
+
+/* Term / description list ("How it's built"). Element + class to match the
+   specificity of Streamlit's own list padding, which this replaces. */
+dl.fd-defs {
+  display: grid;
+  grid-template-columns: minmax(8rem, 11rem) 1fr;
+  margin: 0;
+  padding: 0;
+}
+.fd-defs dt,
+.fd-defs dd {
+  margin: 0;
+  padding: 0.75rem 0;
+  border-top: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+}
+.fd-defs dt { font-weight: 600; }
+.fd-defs dd { color: color-mix(in srgb, currentColor 80%, transparent); }
+
+@media (max-width: 760px) {
+  .fd-align-end { justify-content: flex-start; }
+  [data-testid="stMainBlockContainer"] { padding-top: 2rem; }
+  .fd-flow { flex-direction: column; }
+  .fd-arrow { transform: rotate(90deg); }
+  .fd-node__rows { padding-top: 0.25rem; }
+  .fd-defs { grid-template-columns: 1fr; }
+  .fd-defs dd { border-top: none; padding-top: 0; }
+}
