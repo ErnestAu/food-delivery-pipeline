@@ -18,6 +18,8 @@ jobs:
       DATABRICKS_HTTP_PATH: ${{ secrets.DATABRICKS_HTTP_PATH }}
       DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
       DBT_PROFILES_DIR: ${{ github.workspace }}/dbt/food_delivery
+      # One schema per pull request: parallel PRs used to collide in a shared gold_dbt_ci.
+      DBT_CI_SCHEMA: gold_dbt_ci_pr${{ github.event.pull_request.number }}
     steps:
       - uses: actions/checkout@v5
 
@@ -39,3 +41,7 @@ jobs:
 
       - name: Run tests
         run: dbt test --target ci
+
+      - name: Drop this run's CI schema
+        if: always()
+        run: dbt run-operation drop_ci_schema --target ci

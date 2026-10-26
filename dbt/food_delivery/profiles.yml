@@ -14,6 +14,6 @@ food_delivery:
       catalog: food_delivery
       host: "{{ env_var('DATABRICKS_SERVER_HOSTNAME') }}"
       http_path: "{{ env_var('DATABRICKS_HTTP_PATH') }}"
-      schema: gold_dbt_ci
+      schema: "{{ env_var('DBT_CI_SCHEMA', 'gold_dbt_ci') }}"  # CI sets one per pull request
       threads: 4
       token: "{{ env_var('DATABRICKS_TOKEN') }}"
