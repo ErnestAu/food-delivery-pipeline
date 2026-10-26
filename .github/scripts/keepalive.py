@@ -21,9 +21,9 @@ WAKE = "text=/get this app back up/i"
 FRESHNESS = "[data-freshness]"
 
 FRESHNESS_STATES = {"live", "delayed", "unknown"}
-# Old data counts as an outage only after 4 days: the producer runs on laptop cron, and
-# overnight sleep regularly leaves gaps of up to a day that recover on their own.
-ALERT_AFTER_MINUTES = 4 * 24 * 60
+# Old data counts as an outage after a week, the same point the dashboard turns Delayed.
+# The producer runs on laptop cron, so gaps of a day or more recover on their own.
+ALERT_AFTER_MINUTES = 7 * 24 * 60
 
 DEADLINE_S = 240  # cold start + warehouse wake-up
 POLL_S = 5

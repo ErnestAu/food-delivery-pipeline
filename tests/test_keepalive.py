@@ -82,10 +82,11 @@ def test_observe_keeps_only_safe_kind_characters():
     assert observe([frame]).status == "token-rejected"
 
 
-def test_alert_only_after_four_days():
-    assert ALERT_AFTER_MINUTES == 4 * 24 * 60
-    assert verdict(Observation(True, None, False, False, "delayed", 4 * 24 * 60)) == ("down", "data-stale")
-    assert verdict(Observation(True, None, False, False, "delayed", 3 * 24 * 60)) == ("ok", "")
+def test_alert_only_after_a_week():
+    week = 7 * 24 * 60
+    assert ALERT_AFTER_MINUTES == week
+    assert verdict(Observation(True, None, False, False, "delayed", week)) == ("down", "data-stale")
+    assert verdict(Observation(True, None, False, False, "live", week - 1)) == ("ok", "")
 
 
 def test_delayed_data_does_not_alert():

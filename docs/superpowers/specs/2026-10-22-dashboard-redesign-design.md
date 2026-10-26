@@ -150,4 +150,4 @@ After the redesign shipped locally, the Databricks job sat idle for hours after 
 
 **Revised 2026-10-26:** Live now means under 24 hours, changed from 3. Laptop-sleep gaps made a 10-hour-old order read as Delayed. Delayed runs from 24 hours to 2 days; Stale is unchanged.
 
-**Revised 2026-10-26 (again):** Live within a week, Delayed beyond that. The Stale state is gone. The keep-alive's 4-day data alert is a separate setting and is unchanged.
+**Revised 2026-10-26 (again):** Live within a week, Delayed beyond that. The Stale state is gone. The keep-alive's stale-data alert moved from 4 days to a week, to match.

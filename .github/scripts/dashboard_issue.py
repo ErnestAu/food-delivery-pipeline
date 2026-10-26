@@ -46,7 +46,7 @@ CAUSES = {
     ),
     "data-stale": (
         "Data stale",
-        "The dashboard is up, but the newest order in gold is more than 4 days old: the pipeline "
+        "The dashboard is up, but the newest order in gold is more than a week old: the pipeline "
         "has stopped. Check the Databricks job, and log in to the workspace in case compute is blocked.",
     ),
     "data-missing": (
@@ -57,7 +57,7 @@ CAUSES = {
 
 # Data causes are about the pipeline behind a working dashboard, so they read differently.
 _TITLES = {
-    "data-stale": "Pipeline stalled: no new orders for 4+ days",
+    "data-stale": "Pipeline stalled: no new orders for over a week",
     "data-missing": "Pipeline empty: no orders in gold",
 }
 

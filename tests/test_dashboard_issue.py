@@ -102,14 +102,14 @@ def test_main_stays_quiet_on_same_cause(monkeypatch):
 
 
 def test_data_causes_get_pipeline_titles():
-    assert title("data-stale") == "Pipeline stalled: no new orders for 4+ days"
+    assert title("data-stale") == "Pipeline stalled: no new orders for over a week"
     assert title("compute-blocked") == "Dashboard down: Databricks compute blocked"
 
 
 def test_main_opens_a_pipeline_issue_for_stale_data(monkeypatch):
     calls = run_main(monkeypatch, "down", "data-stale", [])
     create = next(c for c in calls if c[:2] == ("issue", "create"))
-    assert create[create.index("--title") + 1] == "Pipeline stalled: no new orders for 4+ days"
+    assert create[create.index("--title") + 1] == "Pipeline stalled: no new orders for over a week"
 
 
 def test_data_issue_body_says_the_data_is_old_not_that_the_dashboard_is_down():
