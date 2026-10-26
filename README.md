@@ -3,11 +3,14 @@
 > End-to-end data pipeline for a simulated food delivery business — from synthetic
 > event generation, through a medallion-architecture lakehouse on Databricks, to a
 > dbt-modeled gold layer guarded by automated data-quality tests and CI, with a
-> two-page live dashboard: business KPIs plus a pipeline-health observability view.
+> three-page live dashboard: an overview of the pipeline, a pipeline-health deep dive, and
+> business operations.
 > Built as a portfolio piece drawing on my prior experience as a Data Analytics
 > Engineer at foodpanda.
 
 🔗 **Live dashboard:** [ernestau-food-delivery-ops.streamlit.app](https://ernestau-food-delivery-ops.streamlit.app)
+
+![Dashboard: overview of the medallion flow, pipeline health, and operations](docs/dashboard-preview.png)
 
 📋 **Requirements & data model:** [`requirements-and-data-model.png`](docs/requirements-and-data-model.png)
 
@@ -101,15 +104,20 @@ re-running the same hour reproduces identical events, and silver's
 
 ## 🩺 Observability
 
-Two layers, deliberately different:
+Three layers, deliberately different:
 
 - **Alert on the unexpected** — a Databricks **SQL Alert** fires if the newest event
   is more than 3 hours old (a stalled pipeline fails no tests — liveness needs its
   own check), and the Databricks job sends **failure-notification emails**.
-- **Dashboard the known** — the public **Pipeline Health** page tracks freshness per
+- **Watch from the outside** — the 6-hourly keep-alive (GitHub Actions + Playwright) reads
+  what the live page actually shows and keeps one `dashboard-down` issue per outage, naming
+  the cause (token rejected, compute blocked, data stale, …) and closing it with the downtime
+  on recovery. It still works when the warehouse is down, which the SQL Alert can't see, and
+  it flags a pipeline stalled for 4+ days even when the page itself renders fine.
+- **Dashboard the known** — the public **Pipeline health** page tracks freshness per
   layer (plus last pipeline run from Delta commit history), orders-per-hour against a
   trailing 7-day same-hour baseline (with a selectable window), counts of known
-  data-quality issues, and a bronze → silver → gold row-count funnel. Known issues are
+  data-quality issues, and a bronze → silver → gold row reconciliation. Known issues are
   tracked there rather than alerted — paging on a known, unfixed issue is just noise.
 
 ---
@@ -154,7 +162,7 @@ replacing it. See [`airflow/README.md`](airflow/README.md).
 | Transforms (bronze/silver) | [Lakeflow Spark Declarative Pipelines](https://docs.databricks.com/aws/en/ldp/) (PySpark) |
 | **Transforms (gold)** | **dbt (SQL models) + [dbt_utils](https://github.com/dbt-labs/dbt-utils), dbt-databricks adapter — run as a Databricks job task** |
 | **Data quality / CI** | **dbt tests (generic + package), GitHub Actions, branch protection** |
-| **Observability** | **Databricks SQL Alerts, job failure notifications, public Pipeline Health page** |
+| **Observability** | **Databricks SQL Alerts, job failure notifications, public Pipeline health page, outside-in health check** |
 | Governance | Unity Catalog (`bronze`, `silver`, `gold`, `gold_dbt`) |
 | Dashboard | Streamlit (multipage), [databricks-sql-connector](https://github.com/databricks/databricks-sql-python), Plotly |
 
@@ -211,9 +219,9 @@ dbt build                                  # run models + tests in DAG order
 dbt docs generate && dbt docs serve        # browse the lineage graph
 ```
 
-### Dashboard (both pages)
+### Dashboard
 ```bash
-streamlit run dashboard/app.py             # Pipeline Health + Food Delivery Ops
+streamlit run dashboard/app.py             # Overview, Pipeline health, Operations
 ```
 
 ### Airflow (local orchestration)
@@ -243,11 +251,15 @@ food-delivery-pipeline/
 ├── databricks/food-delivery-etl/transformations/   # PySpark bronze/silver (+ legacy gold)
 ├── airflow/                            # Astro CLI project — orchestration DAG
 ├── scripts/live_tick.sh               # hourly cron driver (simulator + S3 sync)
-├── dashboard/                          # Streamlit multipage app
-│   ├── app.py                          # entrypoint / page router
-│   ├── db.py                           # shared Databricks SQL connection
-│   ├── pipeline_health.py              # observability page (default landing)
-│   └── food_delivery_ops.py            # business KPI page
+├── .streamlit/config.toml             # theme tokens, light + dark (Apple HIG-based)
+├── dashboard/                          # Streamlit multipage app, top navigation
+│   ├── app.py                          # entrypoint: theme, navigation, keep-alive ready marker
+│   ├── overview.py                     # landing page: medallion flow, live status, decisions
+│   ├── pipeline_health.py              # observability deep dive
+│   ├── operations.py                   # business KPIs
+│   ├── queries.py · freshness.py · ui.py   # shared queries, freshness states, HTML builders
+│   ├── db.py · status.py               # warehouse access + public-safe failure status
+│   └── style.css                       # the only stylesheet
 └── docs/ , data/samples/
 ```
 

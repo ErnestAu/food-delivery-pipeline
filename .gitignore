@@ -1,5 +1,11 @@
-# Claude
-.claude/
+# Agent settings stay local; vendored skills and design context are shared
+.claude/*
+!.claude/skills/
+!.claude/apple-design-context.md
+.claude/skills/*/references/
+
+# Git worktrees (see AGENTS.md)
+.worktrees/
 
 # Generated data (big — runtime-only)
 data/raw/
@@ -25,6 +31,7 @@ build/
 
 # Environment
 .env
+.streamlit/secrets.toml
 .env.*
 
 # Databricks
