@@ -20,7 +20,7 @@ EXCEPTION = "[data-testid='stException']"
 WAKE = "text=/get this app back up/i"
 FRESHNESS = "[data-freshness]"
 
-FRESHNESS_STATES = {"live", "delayed", "stale", "unknown"}
+FRESHNESS_STATES = {"live", "delayed", "unknown"}
 # Old data counts as an outage only after 4 days: the producer runs on laptop cron, and
 # overnight sleep regularly leaves gaps of up to a day that recover on their own.
 ALERT_AFTER_MINUTES = 4 * 24 * 60
