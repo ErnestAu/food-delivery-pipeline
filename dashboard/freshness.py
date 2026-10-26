@@ -1,7 +1,8 @@
 """Freshness states shared by the status pill and every freshness tile.
 
-Live under 3 hours (the freshness SQL Alert's threshold), delayed under 2 days,
-stale beyond that, unknown when a layer has no timestamp yet.
+Live under 24 hours, delayed under 2 days, stale beyond that, unknown when a layer
+has no timestamp yet. The producer runs on laptop cron, so overnight gaps of several
+hours are normal and shouldn't read as a problem.
 """
 from __future__ import annotations
 
@@ -9,7 +10,7 @@ from datetime import datetime
 
 import pandas as pd
 
-LIVE_MINUTES = 3 * 60
+LIVE_MINUTES = 24 * 60
 STALE_MINUTES = 2 * 24 * 60
 LABELS = {"live": "Live", "delayed": "Delayed", "stale": "Stale", "unknown": "No data"}
 

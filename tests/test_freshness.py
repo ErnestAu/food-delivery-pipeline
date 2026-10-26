@@ -6,7 +6,7 @@ from freshness import freshness_state, humanize, minutes_since
 
 
 def test_states_follow_thresholds():
-    minutes = (0, 179, 180, 2879, 2880, None)
+    minutes = (0, 1439, 1440, 2879, 2880, None)
     assert [freshness_state(m) for m in minutes] == ["live", "live", "delayed", "delayed", "stale", "unknown"]
 
 
