@@ -149,3 +149,5 @@ After the redesign shipped locally, the Databricks job sat idle for hours after 
 **Revised the same day:** the maintainer chose to alert only when the newest order is **4+ days** old, or when gold has no data. Laptop-sleep gaps in the last 29 days reached 27 hours (42 gaps over 3 hours, none over 2 days). The pill also carries `data-age-minutes`, the monitor alerts at `ALERT_AFTER_MINUTES = 5760`, and `data-delayed` was removed. The pill's display thresholds are unchanged.
 
 **Revised 2026-10-26:** Live now means under 24 hours, changed from 3. Laptop-sleep gaps made a 10-hour-old order read as Delayed. Delayed runs from 24 hours to 2 days; Stale is unchanged.
+
+**Revised 2026-10-26 (again):** Live within a week, Delayed beyond that. The Stale state is gone. The keep-alive's 4-day data alert is a separate setting and is unchanged.

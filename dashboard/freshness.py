@@ -1,8 +1,8 @@
 """Freshness states shared by the status pill and every freshness tile.
 
-Live under 24 hours, delayed under 2 days, stale beyond that, unknown when a layer
-has no timestamp yet. The producer runs on laptop cron, so overnight gaps of several
-hours are normal and shouldn't read as a problem.
+Live within a week, delayed beyond that, unknown when a layer has no timestamp yet.
+The producer runs on laptop cron, so gaps of a day or more are normal and shouldn't
+read as a problem.
 """
 from __future__ import annotations
 
@@ -10,9 +10,8 @@ from datetime import datetime
 
 import pandas as pd
 
-LIVE_MINUTES = 24 * 60
-STALE_MINUTES = 2 * 24 * 60
-LABELS = {"live": "Live", "delayed": "Delayed", "stale": "Stale", "unknown": "No data"}
+LIVE_MINUTES = 7 * 24 * 60
+LABELS = {"live": "Live", "delayed": "Delayed", "unknown": "No data"}
 
 
 def minutes_since(ts, now: datetime) -> float | None:
@@ -27,11 +26,7 @@ def minutes_since(ts, now: datetime) -> float | None:
 def freshness_state(minutes: float | None) -> str:
     if minutes is None:
         return "unknown"
-    if minutes < LIVE_MINUTES:
-        return "live"
-    if minutes < STALE_MINUTES:
-        return "delayed"
-    return "stale"
+    return "live" if minutes < LIVE_MINUTES else "delayed"
 
 
 def humanize(minutes: float | None) -> str:

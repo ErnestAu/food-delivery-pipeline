@@ -9,7 +9,6 @@
 :root {
   --fd-live: #0ca30c;
   --fd-delayed: #fab219;
-  --fd-stale: #d03b3b;
   --fd-unknown: #8e8e93;
   --fd-radius: 14px;
 }
@@ -64,7 +63,6 @@
 }
 .fd-state--live .fd-dot { background: var(--fd-live); }
 .fd-state--delayed .fd-dot { background: var(--fd-delayed); }
-.fd-state--stale .fd-dot { background: var(--fd-stale); }
 
 /* Medallion flow: five cards joined by arrows; stacks on narrow screens. */
 .fd-flow {

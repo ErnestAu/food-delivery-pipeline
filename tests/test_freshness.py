@@ -6,8 +6,15 @@ from freshness import freshness_state, humanize, minutes_since
 
 
 def test_states_follow_thresholds():
-    minutes = (0, 1439, 1440, 2879, 2880, None)
-    assert [freshness_state(m) for m in minutes] == ["live", "live", "delayed", "delayed", "stale", "unknown"]
+    week = 7 * 24 * 60
+    minutes = (0, 3 * 24 * 60, week - 1, week, 30 * 24 * 60, None)
+    assert [freshness_state(m) for m in minutes] == ["live", "live", "live", "delayed", "delayed", "unknown"]
+
+
+def test_there_is_no_stale_state():
+    from freshness import LABELS
+
+    assert set(LABELS) == {"live", "delayed", "unknown"}
 
 
 def test_humanize():

@@ -84,8 +84,8 @@ def test_observe_keeps_only_safe_kind_characters():
 
 def test_alert_only_after_four_days():
     assert ALERT_AFTER_MINUTES == 4 * 24 * 60
-    assert verdict(Observation(True, None, False, False, "stale", 4 * 24 * 60)) == ("down", "data-stale")
-    assert verdict(Observation(True, None, False, False, "stale", 3 * 24 * 60)) == ("ok", "")
+    assert verdict(Observation(True, None, False, False, "delayed", 4 * 24 * 60)) == ("down", "data-stale")
+    assert verdict(Observation(True, None, False, False, "delayed", 3 * 24 * 60)) == ("ok", "")
 
 
 def test_delayed_data_does_not_alert():
@@ -102,16 +102,16 @@ def test_live_or_unmarked_data_is_ok():
 
 
 def test_status_marker_beats_freshness():
-    assert verdict(Observation(True, "token-rejected", False, False, "stale", 9999)) == ("down", "token-rejected")
+    assert verdict(Observation(True, "token-rejected", False, False, "delayed", 9999)) == ("down", "token-rejected")
 
 
 def test_observe_reads_freshness_and_age():
-    obs = observe([FakeFrame({READY: 1}, freshness="stale", age="6000")])
-    assert obs.freshness == "stale" and obs.age_minutes == 6000
+    obs = observe([FakeFrame({READY: 1}, freshness="delayed", age="6000")])
+    assert obs.freshness == "delayed" and obs.age_minutes == 6000
 
 
 def test_observe_ignores_a_garbled_age():
-    assert observe([FakeFrame({READY: 1}, freshness="stale", age="soon")]).age_minutes is None
+    assert observe([FakeFrame({READY: 1}, freshness="delayed", age="soon")]).age_minutes is None
 
 
 def test_observe_ignores_unknown_freshness_values():
