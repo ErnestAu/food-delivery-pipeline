@@ -30,7 +30,10 @@ def reconcile(counts: dict[str, int | None]) -> list[dict]:
 
 
 def layer_stats() -> pd.DataFrame:
-    """Rows and newest event per layer: one round trip for the flow and freshness tiles."""
+    """Rows and newest event per layer, plus the dbt model count in a 'models' row.
+
+    One round trip for the flow, the freshness tiles and the reconciliation table.
+    """
     return db.run_query(
         """
         SELECT 'bronze' AS layer, count(*) AS row_count,
@@ -40,21 +43,21 @@ def layer_stats() -> pd.DataFrame:
         SELECT 'silver', count(*), max(occurred_at) FROM food_delivery.silver.order_events
         UNION ALL
         SELECT 'gold', count(*), max(occurred_at) FROM food_delivery.gold_dbt.fct_order_events
+        UNION ALL
+        SELECT 'models', count(*), CAST(NULL AS TIMESTAMP)
+        FROM food_delivery.information_schema.tables
+        WHERE table_schema = 'gold_dbt'
         """
     )
 
 
 def last_pipeline_run() -> pd.Timestamp | None:
-    """When the scheduled job last wrote silver, from Delta commit history."""
-    df = db.run_query(
-        """
-        SELECT timestamp AS last_refresh_at
-        FROM (DESCRIBE HISTORY food_delivery.silver.order_events)
-        ORDER BY version DESC
-        LIMIT 1
-        """
-    )
-    return None if df.empty else df["last_refresh_at"].iloc[0]
+    """When the scheduled job last wrote silver, from Delta commit history.
+
+    LIMIT 1 reads only the newest commit (about 1.5 s); sorting the full history took 10+ s.
+    """
+    df = db.run_query("DESCRIBE HISTORY food_delivery.silver.order_events LIMIT 1")
+    return None if df.empty else df["timestamp"].iloc[0]
 
 
 def known_issues() -> pd.Series:
@@ -72,13 +75,3 @@ def known_issues() -> pd.Series:
         """
     ).iloc[0]
 
-
-def gold_model_count() -> int:
-    df = db.run_query(
-        """
-        SELECT count(*) AS models
-        FROM food_delivery.information_schema.tables
-        WHERE table_schema = 'gold_dbt'
-        """
-    )
-    return int(df["models"].iloc[0])
