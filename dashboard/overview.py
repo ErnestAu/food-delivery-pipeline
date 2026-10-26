@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 import streamlit as st
 
 from freshness import LABELS, ago_text, freshness_state, minutes_since
-from queries import LAYERS, gold_model_count, known_issues, last_pipeline_run, layer_stats
+from queries import LAYERS, known_issues, last_pipeline_run, layer_stats
 from ui import Node, defs, flow, status_pill, tile, tiles
 
 REPO_URL = "https://github.com/ErnestAu/food-delivery-pipeline"
@@ -18,6 +18,7 @@ REPO_URL = "https://github.com/ErnestAu/food-delivery-pipeline"
 now = datetime.now(timezone.utc)
 stats = layer_stats().set_index("layer")
 rows = {layer: int(stats.at[layer, "row_count"]) if layer in stats.index else None for layer in LAYERS}
+models = int(stats.at["models", "row_count"]) if "models" in stats.index else None
 age = {
     layer: minutes_since(stats.at[layer, "last_event_at"], now) if layer in stats.index else None
     for layer in LAYERS
@@ -40,8 +41,8 @@ st.html(
         Node("Source", "Simulator, hourly to S3", updated="Order lifecycle events", counts=False),
         Node("Bronze", "Auto Loader", rows["bronze"], f"newest event {ago_text(age['bronze'])}"),
         Node("Silver", "Dedup + watermark", rows["silver"], f"newest event {ago_text(age['silver'])}"),
-        Node("Gold", f"dbt · {gold_model_count()} models", rows["gold"], f"newest event {ago_text(age['gold'])}"),
-        Node("Serving", "This dashboard", updated="Cached for 5 minutes", counts=False),
+        Node("Gold", f"dbt · {models} models" if models else "dbt", rows["gold"], f"newest event {ago_text(age['gold'])}"),
+        Node("Serving", "This dashboard", updated="Cached for 15 minutes", counts=False),
     ])
 )
 

@@ -19,18 +19,18 @@ def fake_query(query, params=None):
     q = " ".join(query.split())
     hours = pd.date_range(end=pd.Timestamp(NOW).floor("h"), periods=72, freq="h")
     if "DESCRIBE HISTORY" in q:
-        return pd.DataFrame({"last_refresh_at": [minutes_ago(40)]})
+        assert "LIMIT 1" in q, "read only the latest commit; the full history scan is slow"
+        return pd.DataFrame({"timestamp": [minutes_ago(40)]})
     if "WITH hourly" in q:
         return pd.DataFrame({"hr": hours, "orders": 30, "expected": 28})
     if "negative_gmv" in q:
         return pd.DataFrame({"negative_gmv": [55], "unknown_event_types": [1], "orphan_vendors": [5]})
-    if "information_schema.tables" in q:
-        return pd.DataFrame({"models": [8]})
     if "AS row_count" in q and "last_event_at" in q:
+        assert "information_schema.tables" in q, "model count rides along with the layer stats"
         return pd.DataFrame({
-            "layer": ["bronze", "silver", "gold"],
-            "row_count": [758512, 727208, 727208],
-            "last_event_at": [minutes_ago(10), minutes_ago(10), minutes_ago(10)],
+            "layer": ["bronze", "silver", "gold", "models"],
+            "row_count": [758512, 727208, 727208, 8],
+            "last_event_at": [minutes_ago(10), minutes_ago(10), minutes_ago(10), None],
         })
     if "AS last_event_at" in q:
         return pd.DataFrame({"layer": ["silver", "gold"], "last_event_at": [minutes_ago(10), minutes_ago(10)]})
